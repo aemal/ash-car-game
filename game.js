@@ -6,7 +6,8 @@ let previewScenes = [];
 let previewCameras = [];
 let previewRenderers = [];
 let carModels = {};
-let buildings = []; // Store building refences
+let buildings = []; // Store building references
+let trees = []; // Store tree references
 let isGameOver = false;
 let fireParticles = null;
 let countdownMesh = null;
@@ -698,10 +699,21 @@ function checkCollisions() {
 
     const carBox = new THREE.Box3().setFromObject(car);
     
+    // Check building collisions
     for (const building of buildings) {
         if (carBox.intersectsBox(building.bounds)) {
             handleCollision();
-            break;
+            return;
+        }
+    }
+    
+    // Check tree collisions
+    for (const tree of trees) {
+        // Update tree bounding box (in case tree moved/rotated)
+        tree.bounds.setFromObject(tree.mesh);
+        if (carBox.intersectsBox(tree.bounds)) {
+            handleCollision();
+            return;
         }
     }
 }
@@ -733,6 +745,9 @@ function resetGame() {
     
     // Reset game state
     isGameOver = false;
+    
+    // Clear trees array before recreating environment
+    trees = [];
 }
 
 // Update car physics
@@ -965,6 +980,10 @@ function createTrees() {
         
         // Add slight random rotation for variety
         tree.rotation.y = Math.random() * Math.PI * 2;
+        
+        // Create and store collision box
+        const boundingBox = new THREE.Box3().setFromObject(tree);
+        trees.push({ mesh: tree, bounds: boundingBox });
         
         return tree;
     }
