@@ -198,11 +198,26 @@ function createEnvironment() {
     ground.receiveShadow = true;
     scene.add(ground);
 
+    // Create grass patches
+    const grassGeometry = new THREE.PlaneGeometry(1000, 1000);
+    const grassMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x2d5a27,
+        roughness: 1,
+        metalness: 0
+    });
+    const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+    grass.rotation.x = -Math.PI / 2;
+    grass.position.y = -0.15;
+    scene.add(grass);
+
     // Create streets
     createStreets();
 
     // Create buildings
     createBuildings();
+
+    // Add trees
+    createTrees();
 }
 
 // Create street network
@@ -892,6 +907,107 @@ function animate() {
     // Render the scene
     if (renderer && scene && camera) {
         renderer.render(scene, camera);
+    }
+}
+
+// Create trees function
+function createTrees() {
+    // Tree creation helper function
+    function createTree(x, z, scale = 1) {
+        const tree = new THREE.Group();
+        
+        // Create trunk
+        const trunkGeometry = new THREE.CylinderGeometry(0.2 * scale, 0.3 * scale, 1.5 * scale, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4a2f21,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.castShadow = true;
+        trunk.receiveShadow = true;
+        trunk.position.y = 0.75 * scale;
+        tree.add(trunk);
+
+        // Create foliage (multiple layers for fuller look)
+        const foliageMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0f5f13,
+            roughness: 1,
+            metalness: 0
+        });
+
+        // Bottom layer (wider)
+        const foliageGeometry1 = new THREE.ConeGeometry(2 * scale, 3 * scale, 8);
+        const foliage1 = new THREE.Mesh(foliageGeometry1, foliageMaterial);
+        foliage1.position.y = 2 * scale;
+        foliage1.castShadow = true;
+        foliage1.receiveShadow = true;
+        tree.add(foliage1);
+
+        // Middle layer
+        const foliageGeometry2 = new THREE.ConeGeometry(1.6 * scale, 2.5 * scale, 8);
+        const foliage2 = new THREE.Mesh(foliageGeometry2, foliageMaterial);
+        foliage2.position.y = 3 * scale;
+        foliage2.castShadow = true;
+        foliage2.receiveShadow = true;
+        tree.add(foliage2);
+
+        // Top layer (smaller)
+        const foliageGeometry3 = new THREE.ConeGeometry(1.2 * scale, 2 * scale, 8);
+        const foliage3 = new THREE.Mesh(foliageGeometry3, foliageMaterial);
+        foliage3.position.y = 4 * scale;
+        foliage3.castShadow = true;
+        foliage3.receiveShadow = true;
+        tree.add(foliage3);
+
+        // Position the tree
+        tree.position.set(x, 0, z);
+        
+        // Add slight random rotation for variety
+        tree.rotation.y = Math.random() * Math.PI * 2;
+        
+        return tree;
+    }
+
+    // Add trees along streets
+    const streetOffset = 20; // Distance from street center
+    const treeSpacing = 15; // Space between trees
+
+    // Trees along main street
+    for (let z = -450; z <= 450; z += treeSpacing) {
+        if (Math.random() > 0.3) { // 70% chance to place a tree
+            const scale = 0.8 + Math.random() * 0.4; // Random scale between 0.8 and 1.2
+            scene.add(createTree(-streetOffset, z, scale));
+            scene.add(createTree(streetOffset, z, scale));
+        }
+    }
+
+    // Trees along cross streets
+    for (let x = -450; x <= 450; x += treeSpacing) {
+        if (Math.random() > 0.3) {
+            const scale = 0.8 + Math.random() * 0.4;
+            scene.add(createTree(x, -streetOffset, scale));
+            scene.add(createTree(x, streetOffset, scale));
+        }
+    }
+
+    // Add random tree clusters in open areas
+    const numClusters = 20;
+    for (let i = 0; i < numClusters; i++) {
+        const clusterX = -400 + Math.random() * 800;
+        const clusterZ = -400 + Math.random() * 800;
+        
+        // Skip if too close to streets
+        if (Math.abs(clusterX) < 30 || Math.abs(clusterZ) < 30) continue;
+        
+        // Create cluster of 3-7 trees
+        const numTrees = 3 + Math.floor(Math.random() * 5);
+        for (let j = 0; j < numTrees; j++) {
+            const offsetX = -10 + Math.random() * 20;
+            const offsetZ = -10 + Math.random() * 20;
+            const scale = 0.8 + Math.random() * 0.6;
+            scene.add(createTree(clusterX + offsetX, clusterZ + offsetZ, scale));
+        }
     }
 }
 
