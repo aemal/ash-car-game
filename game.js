@@ -186,16 +186,16 @@ function init() {
 
 // Create the environment (streets, buildings, etc.)
 function createEnvironment() {
-    // Create ground
+    // Create ground with green base
     const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
     const groundMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x333333,
-        roughness: 0.8,
-        metalness: 0.2
+        color: 0x2d5a27, // Changed from gray (0x333333) to dark green
+        roughness: 1,
+        metalness: 0
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.1;
+    ground.position.y = -0.2; // Slightly lower to prevent z-fighting
     ground.receiveShadow = true;
     scene.add(ground);
 
@@ -215,12 +215,14 @@ function createEnvironment() {
     ];
 
     // Create multiple base grass layers for more variation
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) { // Increased from 3 to 5 layers
         const grassGeometry = new THREE.PlaneGeometry(1000, 1000);
         const grassMaterial = new THREE.MeshStandardMaterial({ 
-            color: grassColors[i],
+            color: grassColors[i % grassColors.length],
             roughness: 1,
-            metalness: 0
+            metalness: 0,
+            opacity: 0.8,
+            transparent: true
         });
         const grass = new THREE.Mesh(grassGeometry, grassMaterial);
         grass.rotation.x = -Math.PI / 2;
@@ -310,36 +312,36 @@ function createEnvironment() {
 function createStreets() {
     // Street materials
     const streetMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x333333,  // Darker asphalt color
+        color: 0x333333,  // Dark gray for asphalt
         roughness: 0.9,
         metalness: 0.1
     });
 
     const sidewalkMaterial = new THREE.MeshStandardMaterial({
-        color: 0x999999,  // Light gray for sidewalks
+        color: 0x777777,  // Lighter gray for sidewalks
         roughness: 0.8,
         metalness: 0.1
     });
 
     // Main roads - drastically reduced width
-    const mainRoadWidth = 10;  // Further reduced from 15 to 10
+    const mainRoadWidth = 8;  // Further reduced from 10 to 8
     const mainRoad = new THREE.Mesh(
         new THREE.PlaneGeometry(mainRoadWidth, 1000),
         streetMaterial
     );
     mainRoad.rotation.x = -Math.PI / 2;
-    mainRoad.position.y = 0;
+    mainRoad.position.y = 0.01; // Slightly raised to prevent z-fighting
     mainRoad.receiveShadow = true;
     scene.add(mainRoad);
 
     // Sidewalks along main road - minimal width
-    const sidewalkWidth = 1.5; // Further reduced from 2 to 1.5
+    const sidewalkWidth = 1; // Further reduced from 1.5 to 1
     const leftSidewalk = new THREE.Mesh(
         new THREE.PlaneGeometry(sidewalkWidth, 1000),
         sidewalkMaterial
     );
     leftSidewalk.rotation.x = -Math.PI / 2;
-    leftSidewalk.position.set(-mainRoadWidth/2 - sidewalkWidth/2, 0.1, 0);
+    leftSidewalk.position.set(-mainRoadWidth/2 - sidewalkWidth/2, 0.02, 0);
     leftSidewalk.receiveShadow = true;
     scene.add(leftSidewalk);
 
@@ -347,36 +349,15 @@ function createStreets() {
     rightSidewalk.position.x = mainRoadWidth/2 + sidewalkWidth/2;
     scene.add(rightSidewalk);
 
-    // Add grass strips between road and sidewalk
-    const grassStripMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2d5a27,
-        roughness: 1,
-        metalness: 0
-    });
-
-    const grassStripWidth = 1;
-    const leftGrassStrip = new THREE.Mesh(
-        new THREE.PlaneGeometry(grassStripWidth, 1000),
-        grassStripMaterial
-    );
-    leftGrassStrip.rotation.x = -Math.PI / 2;
-    leftGrassStrip.position.set(-mainRoadWidth/2 - sidewalkWidth - grassStripWidth/2, 0.05, 0);
-    leftGrassStrip.receiveShadow = true;
-    scene.add(leftGrassStrip);
-
-    const rightGrassStrip = leftGrassStrip.clone();
-    rightGrassStrip.position.x = mainRoadWidth/2 + sidewalkWidth + grassStripWidth/2;
-    scene.add(rightGrassStrip);
-
     // Cross streets with sidewalks - spaced much further apart
-    for (let i = -400; i <= 400; i += 500) { // Increased spacing from 400 to 500
+    for (let i = -400; i <= 400; i += 500) {
         // Street - narrower cross streets
         const crossStreet = new THREE.Mesh(
             new THREE.PlaneGeometry(1000, mainRoadWidth),
             streetMaterial
         );
         crossStreet.rotation.x = -Math.PI / 2;
-        crossStreet.position.set(0, 0, i);
+        crossStreet.position.set(0, 0.01, i);
         crossStreet.receiveShadow = true;
         scene.add(crossStreet);
 
@@ -386,7 +367,7 @@ function createStreets() {
             sidewalkMaterial
         );
         crossSidewalkLeft.rotation.x = -Math.PI / 2;
-        crossSidewalkLeft.position.set(0, 0.1, i - mainRoadWidth/2 - sidewalkWidth/2);
+        crossSidewalkLeft.position.set(0, 0.02, i - mainRoadWidth/2 - sidewalkWidth/2);
         crossSidewalkLeft.receiveShadow = true;
         scene.add(crossSidewalkLeft);
 
@@ -395,21 +376,14 @@ function createStreets() {
         scene.add(crossSidewalkRight);
 
         // Add grass strips along cross streets
-        const crossGrassStripLeft = new THREE.Mesh(
-            new THREE.PlaneGeometry(1000, grassStripWidth),
-            grassStripMaterial
-        );
-        crossGrassStripLeft.rotation.x = -Math.PI / 2;
-        crossGrassStripLeft.position.set(0, 0.05, i - mainRoadWidth/2 - sidewalkWidth - grassStripWidth/2);
-        crossGrassStripLeft.receiveShadow = true;
-        scene.add(crossGrassStripLeft);
-
-        const crossGrassStripRight = crossGrassStripLeft.clone();
-        crossGrassStripRight.position.z = i + mainRoadWidth/2 + sidewalkWidth + grassStripWidth/2;
-        scene.add(crossGrassStripRight);
+        const grassStripMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2d5a27,
+            roughness: 1,
+            metalness: 0
+        });
 
         // Add larger grass patches in corners
-        const cornerSize = 80; // Increased from 60 to 80
+        const cornerSize = 100; // Increased from 80 to 100
         const cornerGrass = new THREE.Mesh(
             new THREE.PlaneGeometry(cornerSize, cornerSize),
             grassStripMaterial
@@ -433,25 +407,23 @@ function createStreets() {
         });
 
         // Add additional grass patches between intersections
-        const midGrassPatch = new THREE.Mesh(
-            new THREE.PlaneGeometry(cornerSize * 1.5, cornerSize),
-            grassStripMaterial
-        );
-        midGrassPatch.rotation.x = -Math.PI / 2;
-        midGrassPatch.position.y = -0.05;
+        if (i < 400) {
+            const midPoint = (i + 500) / 2;
+            const grassPatchSize = 150; // Increased size for more coverage
+            const midGrassPatch = new THREE.Mesh(
+                new THREE.PlaneGeometry(grassPatchSize, grassPatchSize),
+                grassStripMaterial
+            );
+            midGrassPatch.rotation.x = -Math.PI / 2;
+            midGrassPatch.position.y = -0.05;
 
-        // Add mid-block grass patches
-        if (i < 400) {  // Don't add after the last intersection
-            const midPoint = (i + 500) / 2;  // Halfway to next intersection
-            const midPatches = [
-                { x: -mainRoadWidth/2 - cornerSize/2, z: midPoint },
-                { x: mainRoadWidth/2 + cornerSize/2, z: midPoint }
-            ];
-
-            midPatches.forEach(pos => {
+            [-1, 1].forEach(xMult => {
                 const patch = midGrassPatch.clone();
-                patch.position.x = pos.x;
-                patch.position.z = pos.z;
+                patch.position.set(
+                    xMult * (mainRoadWidth/2 + grassPatchSize/2),
+                    -0.05,
+                    midPoint
+                );
                 scene.add(patch);
             });
         }
