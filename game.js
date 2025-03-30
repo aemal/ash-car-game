@@ -199,25 +199,110 @@ function createEnvironment() {
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Create grass patches
-    const grassGeometry = new THREE.PlaneGeometry(1000, 1000);
-    const grassMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x2d5a27,
-        roughness: 1,
-        metalness: 0
-    });
-    const grass = new THREE.Mesh(grassGeometry, grassMaterial);
-    grass.rotation.x = -Math.PI / 2;
-    grass.position.y = -0.15;
-    scene.add(grass);
+    // Create multiple grass patches with varying colors
+    const grassColors = [
+        0x2d5a27,  // Dark green
+        0x3a6b33,  // Medium green
+        0x4a7b43,  // Light green
+        0x5a8b53,  // Very light green
+        0x2d6a27,  // Alternative dark green
+        0x3d7a33,  // Alternative medium green
+        0x355e2b,  // Forest green
+        0x446b32,  // Moss green
+        0x2d4a27,  // Deep forest green
+        0x3d5a33,  // Rich green
+        0x4d6a3f   // Bright green
+    ];
 
-    // Create streets
+    // Create multiple base grass layers for more variation
+    for (let i = 0; i < 3; i++) {
+        const grassGeometry = new THREE.PlaneGeometry(1000, 1000);
+        const grassMaterial = new THREE.MeshStandardMaterial({ 
+            color: grassColors[i],
+            roughness: 1,
+            metalness: 0
+        });
+        const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+        grass.rotation.x = -Math.PI / 2;
+        grass.position.y = -0.15 - (i * 0.001); // Slightly different heights
+        grass.receiveShadow = true;
+        scene.add(grass);
+    }
+
+    // Add massive amount of grass patches for ultra-dense coverage
+    const patchSizes = [20, 30, 40, 50, 75]; // More varied sizes, emphasis on smaller patches
+    const numPatches = 1000; // Dramatically increased from 400 to 1000
+    for (let i = 0; i < numPatches; i++) {
+        const patchSize = patchSizes[Math.floor(Math.random() * patchSizes.length)];
+        const patchGeometry = new THREE.PlaneGeometry(patchSize, patchSize);
+        const patchMaterial = new THREE.MeshStandardMaterial({
+            color: grassColors[Math.floor(Math.random() * grassColors.length)],
+            roughness: 1,
+            metalness: 0
+        });
+        const patch = new THREE.Mesh(patchGeometry, patchMaterial);
+        patch.rotation.x = -Math.PI / 2;
+        // Spread patches more evenly across the entire area
+        patch.position.set(
+            -485 + Math.random() * 970,
+            -0.14 + Math.random() * 0.04, // More height variation
+            -485 + Math.random() * 970
+        );
+        patch.rotation.z = Math.random() * Math.PI * 2;
+        patch.receiveShadow = true;
+        scene.add(patch);
+    }
+
+    // Add huge number of tiny detail patches for rich texture
+    const numDetailPatches = 2000; // Dramatically increased from 600 to 2000
+    for (let i = 0; i < numDetailPatches; i++) {
+        const patchSize = 5 + Math.random() * 10; // Random sizes between 5 and 15
+        const patchGeometry = new THREE.PlaneGeometry(patchSize, patchSize);
+        const patchMaterial = new THREE.MeshStandardMaterial({
+            color: grassColors[Math.floor(Math.random() * grassColors.length)],
+            roughness: 1,
+            metalness: 0
+        });
+        const patch = new THREE.Mesh(patchGeometry, patchMaterial);
+        patch.rotation.x = -Math.PI / 2;
+        patch.position.set(
+            -490 + Math.random() * 980,
+            -0.13 + Math.random() * 0.04, // More height variation
+            -490 + Math.random() * 980
+        );
+        patch.rotation.z = Math.random() * Math.PI * 2;
+        patch.receiveShadow = true;
+        scene.add(patch);
+    }
+
+    // Add grass clumps for extra detail
+    const numGrassClumps = 1500; // Add lots of grass clumps
+    for (let i = 0; i < numGrassClumps; i++) {
+        const clumpGeometry = new THREE.PlaneGeometry(3, 3);
+        const clumpMaterial = new THREE.MeshStandardMaterial({
+            color: grassColors[Math.floor(Math.random() * grassColors.length)],
+            roughness: 1,
+            metalness: 0
+        });
+        const clump = new THREE.Mesh(clumpGeometry, clumpMaterial);
+        clump.rotation.x = -Math.PI / 2;
+        clump.position.set(
+            -495 + Math.random() * 990,
+            -0.12 + Math.random() * 0.05, // Even more height variation
+            -495 + Math.random() * 990
+        );
+        clump.rotation.z = Math.random() * Math.PI * 2;
+        clump.receiveShadow = true;
+        scene.add(clump);
+    }
+
+    // Create streets with narrower roads
     createStreets();
 
     // Create buildings
     createBuildings();
 
-    // Add trees
+    // Add more trees
     createTrees();
 }
 
@@ -236,8 +321,8 @@ function createStreets() {
         metalness: 0.1
     });
 
-    // Main roads - wider with multiple lanes
-    const mainRoadWidth = 30;  // Total width including sidewalks
+    // Main roads - drastically reduced width
+    const mainRoadWidth = 10;  // Further reduced from 15 to 10
     const mainRoad = new THREE.Mesh(
         new THREE.PlaneGeometry(mainRoadWidth, 1000),
         streetMaterial
@@ -247,8 +332,8 @@ function createStreets() {
     mainRoad.receiveShadow = true;
     scene.add(mainRoad);
 
-    // Sidewalks along main road
-    const sidewalkWidth = 5;
+    // Sidewalks along main road - minimal width
+    const sidewalkWidth = 1.5; // Further reduced from 2 to 1.5
     const leftSidewalk = new THREE.Mesh(
         new THREE.PlaneGeometry(sidewalkWidth, 1000),
         sidewalkMaterial
@@ -262,9 +347,30 @@ function createStreets() {
     rightSidewalk.position.x = mainRoadWidth/2 + sidewalkWidth/2;
     scene.add(rightSidewalk);
 
-    // Cross streets with sidewalks
-    for (let i = -400; i <= 400; i += 200) {
-        // Street
+    // Add grass strips between road and sidewalk
+    const grassStripMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2d5a27,
+        roughness: 1,
+        metalness: 0
+    });
+
+    const grassStripWidth = 1;
+    const leftGrassStrip = new THREE.Mesh(
+        new THREE.PlaneGeometry(grassStripWidth, 1000),
+        grassStripMaterial
+    );
+    leftGrassStrip.rotation.x = -Math.PI / 2;
+    leftGrassStrip.position.set(-mainRoadWidth/2 - sidewalkWidth - grassStripWidth/2, 0.05, 0);
+    leftGrassStrip.receiveShadow = true;
+    scene.add(leftGrassStrip);
+
+    const rightGrassStrip = leftGrassStrip.clone();
+    rightGrassStrip.position.x = mainRoadWidth/2 + sidewalkWidth + grassStripWidth/2;
+    scene.add(rightGrassStrip);
+
+    // Cross streets with sidewalks - spaced much further apart
+    for (let i = -400; i <= 400; i += 500) { // Increased spacing from 400 to 500
+        // Street - narrower cross streets
         const crossStreet = new THREE.Mesh(
             new THREE.PlaneGeometry(1000, mainRoadWidth),
             streetMaterial
@@ -287,6 +393,68 @@ function createStreets() {
         const crossSidewalkRight = crossSidewalkLeft.clone();
         crossSidewalkRight.position.z = i + mainRoadWidth/2 + sidewalkWidth/2;
         scene.add(crossSidewalkRight);
+
+        // Add grass strips along cross streets
+        const crossGrassStripLeft = new THREE.Mesh(
+            new THREE.PlaneGeometry(1000, grassStripWidth),
+            grassStripMaterial
+        );
+        crossGrassStripLeft.rotation.x = -Math.PI / 2;
+        crossGrassStripLeft.position.set(0, 0.05, i - mainRoadWidth/2 - sidewalkWidth - grassStripWidth/2);
+        crossGrassStripLeft.receiveShadow = true;
+        scene.add(crossGrassStripLeft);
+
+        const crossGrassStripRight = crossGrassStripLeft.clone();
+        crossGrassStripRight.position.z = i + mainRoadWidth/2 + sidewalkWidth + grassStripWidth/2;
+        scene.add(crossGrassStripRight);
+
+        // Add larger grass patches in corners
+        const cornerSize = 80; // Increased from 60 to 80
+        const cornerGrass = new THREE.Mesh(
+            new THREE.PlaneGeometry(cornerSize, cornerSize),
+            grassStripMaterial
+        );
+        cornerGrass.rotation.x = -Math.PI / 2;
+        cornerGrass.position.y = -0.05;
+
+        // Add corners at intersection with larger size
+        const corners = [
+            { x: -mainRoadWidth/2 - cornerSize/2, z: i - mainRoadWidth/2 - cornerSize/2 },
+            { x: mainRoadWidth/2 + cornerSize/2, z: i - mainRoadWidth/2 - cornerSize/2 },
+            { x: -mainRoadWidth/2 - cornerSize/2, z: i + mainRoadWidth/2 + cornerSize/2 },
+            { x: mainRoadWidth/2 + cornerSize/2, z: i + mainRoadWidth/2 + cornerSize/2 }
+        ];
+
+        corners.forEach(pos => {
+            const corner = cornerGrass.clone();
+            corner.position.x = pos.x;
+            corner.position.z = pos.z;
+            scene.add(corner);
+        });
+
+        // Add additional grass patches between intersections
+        const midGrassPatch = new THREE.Mesh(
+            new THREE.PlaneGeometry(cornerSize * 1.5, cornerSize),
+            grassStripMaterial
+        );
+        midGrassPatch.rotation.x = -Math.PI / 2;
+        midGrassPatch.position.y = -0.05;
+
+        // Add mid-block grass patches
+        if (i < 400) {  // Don't add after the last intersection
+            const midPoint = (i + 500) / 2;  // Halfway to next intersection
+            const midPatches = [
+                { x: -mainRoadWidth/2 - cornerSize/2, z: midPoint },
+                { x: mainRoadWidth/2 + cornerSize/2, z: midPoint }
+            ];
+
+            midPatches.forEach(pos => {
+                const patch = midGrassPatch.clone();
+                patch.position.x = pos.x;
+                patch.position.z = pos.z;
+                scene.add(patch);
+            });
+        }
     }
 
     createStreetLines(mainRoadWidth);
@@ -925,16 +1093,22 @@ function animate() {
     }
 }
 
-// Create trees function
+// Modify createTrees function to remove bush type and add more natural trees
 function createTrees() {
     // Tree creation helper function
     function createTree(x, z, scale = 1) {
         const tree = new THREE.Group();
         
-        // Create trunk
+        // Create trunk with varying colors
+        const trunkColors = [
+            0x4a2f21,  // Dark brown
+            0x5a3f31,  // Medium brown
+            0x6a4f41   // Light brown
+        ];
+        
         const trunkGeometry = new THREE.CylinderGeometry(0.2 * scale, 0.3 * scale, 1.5 * scale, 8);
         const trunkMaterial = new THREE.MeshStandardMaterial({
-            color: 0x4a2f21,
+            color: trunkColors[Math.floor(Math.random() * trunkColors.length)],
             roughness: 0.9,
             metalness: 0.1
         });
@@ -944,58 +1118,61 @@ function createTrees() {
         trunk.position.y = 0.75 * scale;
         tree.add(trunk);
 
-        // Create foliage (multiple layers for fuller look)
+        // Create foliage with varying colors
+        const foliageColors = [
+            0x0f5f13,  // Dark green
+            0x1f6f23,  // Medium green
+            0x2f7f33,  // Light green
+            0x3f8f43   // Very light green
+        ];
+
         const foliageMaterial = new THREE.MeshStandardMaterial({
-            color: 0x0f5f13,
+            color: foliageColors[Math.floor(Math.random() * foliageColors.length)],
             roughness: 1,
             metalness: 0
         });
 
-        // Bottom layer (wider)
-        const foliageGeometry1 = new THREE.ConeGeometry(2 * scale, 3 * scale, 8);
-        const foliage1 = new THREE.Mesh(foliageGeometry1, foliageMaterial);
-        foliage1.position.y = 2 * scale;
-        foliage1.castShadow = true;
-        foliage1.receiveShadow = true;
-        tree.add(foliage1);
+        if (Math.random() < 0.3) { // 30% chance for pine trees
+            // Create pine-like tree
+            for (let i = 0; i < 4; i++) { // Added one more layer
+                const pineGeometry = new THREE.ConeGeometry(1.2 * scale * (1 - i * 0.2), 2 * scale, 8);
+                const pine = new THREE.Mesh(pineGeometry, foliageMaterial);
+                pine.position.y = 2 * scale + i * 1.2 * scale;
+                pine.castShadow = true;
+                pine.receiveShadow = true;
+                tree.add(pine);
+            }
+        } else {
+            // Create normal tree with multiple layers
+            for (let i = 0; i < 3; i++) {
+                const size = 2 - i * 0.4;
+                const height = 2 - i * 0.25;
+                const foliageGeometry = new THREE.ConeGeometry(size * scale, height * scale, 8);
+                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                foliage.position.y = (2 + i * 1.2) * scale;
+                foliage.castShadow = true;
+                foliage.receiveShadow = true;
+                tree.add(foliage);
+            }
+        }
 
-        // Middle layer
-        const foliageGeometry2 = new THREE.ConeGeometry(1.6 * scale, 2.5 * scale, 8);
-        const foliage2 = new THREE.Mesh(foliageGeometry2, foliageMaterial);
-        foliage2.position.y = 3 * scale;
-        foliage2.castShadow = true;
-        foliage2.receiveShadow = true;
-        tree.add(foliage2);
-
-        // Top layer (smaller)
-        const foliageGeometry3 = new THREE.ConeGeometry(1.2 * scale, 2 * scale, 8);
-        const foliage3 = new THREE.Mesh(foliageGeometry3, foliageMaterial);
-        foliage3.position.y = 4 * scale;
-        foliage3.castShadow = true;
-        foliage3.receiveShadow = true;
-        tree.add(foliage3);
-
-        // Position the tree
         tree.position.set(x, 0, z);
-        
-        // Add slight random rotation for variety
         tree.rotation.y = Math.random() * Math.PI * 2;
         
-        // Create and store collision box
         const boundingBox = new THREE.Box3().setFromObject(tree);
         trees.push({ mesh: tree, bounds: boundingBox });
         
         return tree;
     }
 
-    // Add trees along streets
-    const streetOffset = 20; // Distance from street center
-    const treeSpacing = 15; // Space between trees
+    // Add trees along streets with increased density
+    const streetOffset = 20;
+    const treeSpacing = 10; // Further reduced spacing for more trees
 
     // Trees along main street
     for (let z = -450; z <= 450; z += treeSpacing) {
-        if (Math.random() > 0.3) { // 70% chance to place a tree
-            const scale = 0.8 + Math.random() * 0.4; // Random scale between 0.8 and 1.2
+        if (Math.random() > 0.2) {
+            const scale = 0.8 + Math.random() * 0.4;
             scene.add(createTree(-streetOffset, z, scale));
             scene.add(createTree(streetOffset, z, scale));
         }
@@ -1003,27 +1180,26 @@ function createTrees() {
 
     // Trees along cross streets
     for (let x = -450; x <= 450; x += treeSpacing) {
-        if (Math.random() > 0.3) {
+        if (Math.random() > 0.2) {
             const scale = 0.8 + Math.random() * 0.4;
             scene.add(createTree(x, -streetOffset, scale));
             scene.add(createTree(x, streetOffset, scale));
         }
     }
 
-    // Add random tree clusters in open areas
-    const numClusters = 20;
+    // Add more random tree clusters in open areas
+    const numClusters = 40; // Increased from 30 to 40
     for (let i = 0; i < numClusters; i++) {
         const clusterX = -400 + Math.random() * 800;
         const clusterZ = -400 + Math.random() * 800;
         
-        // Skip if too close to streets
         if (Math.abs(clusterX) < 30 || Math.abs(clusterZ) < 30) continue;
         
-        // Create cluster of 3-7 trees
-        const numTrees = 3 + Math.floor(Math.random() * 5);
+        // Create larger clusters of 8-15 trees
+        const numTrees = 8 + Math.floor(Math.random() * 8);
         for (let j = 0; j < numTrees; j++) {
-            const offsetX = -10 + Math.random() * 20;
-            const offsetZ = -10 + Math.random() * 20;
+            const offsetX = -20 + Math.random() * 40;
+            const offsetZ = -20 + Math.random() * 40;
             const scale = 0.8 + Math.random() * 0.6;
             scene.add(createTree(clusterX + offsetX, clusterZ + offsetZ, scale));
         }
