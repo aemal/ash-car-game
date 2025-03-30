@@ -137,6 +137,9 @@ let driftFactor = 0.98; // How much the car maintains its previous direction
 let keys = {};
 let isGameStarted = false;
 
+// Add world size constant at the top with other constants
+const WORLD_SIZE = 1000; // Size of the world in units
+
 // Initialize the game
 function init() {
     // Create scene
@@ -187,36 +190,27 @@ function init() {
 // Create the environment (streets, buildings, etc.)
 function createEnvironment() {
     // Create ground with green base
-    const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+    const groundGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE);
     const groundMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x2d5a27, // Changed from gray (0x333333) to dark green
+        color: 0x2d5a27,
         roughness: 1,
         metalness: 0
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.2; // Slightly lower to prevent z-fighting
+    ground.position.y = -0.2;
     ground.receiveShadow = true;
     scene.add(ground);
 
     // Create multiple grass patches with varying colors
     const grassColors = [
-        0x2d5a27,  // Dark green
-        0x3a6b33,  // Medium green
-        0x4a7b43,  // Light green
-        0x5a8b53,  // Very light green
-        0x2d6a27,  // Alternative dark green
-        0x3d7a33,  // Alternative medium green
-        0x355e2b,  // Forest green
-        0x446b32,  // Moss green
-        0x2d4a27,  // Deep forest green
-        0x3d5a33,  // Rich green
-        0x4d6a3f   // Bright green
+        0x2d5a27, 0x3a6b33, 0x4a7b43, 0x5a8b53, 0x2d6a27,
+        0x3d7a33, 0x355e2b, 0x446b32, 0x2d4a27, 0x3d5a33, 0x4d6a3f
     ];
 
-    // Create multiple base grass layers for more variation
-    for (let i = 0; i < 5; i++) { // Increased from 3 to 5 layers
-        const grassGeometry = new THREE.PlaneGeometry(1000, 1000);
+    // Create multiple base grass layers
+    for (let i = 0; i < 5; i++) {
+        const grassGeometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE);
         const grassMaterial = new THREE.MeshStandardMaterial({ 
             color: grassColors[i % grassColors.length],
             roughness: 1,
@@ -226,14 +220,14 @@ function createEnvironment() {
         });
         const grass = new THREE.Mesh(grassGeometry, grassMaterial);
         grass.rotation.x = -Math.PI / 2;
-        grass.position.y = -0.15 - (i * 0.001); // Slightly different heights
+        grass.position.y = -0.15 - (i * 0.001);
         grass.receiveShadow = true;
         scene.add(grass);
     }
 
-    // Add massive amount of grass patches for ultra-dense coverage
-    const patchSizes = [20, 30, 40, 50, 75]; // More varied sizes, emphasis on smaller patches
-    const numPatches = 1000; // Dramatically increased from 400 to 1000
+    // Add grass patches for ultra-dense coverage
+    const patchSizes = [20, 30, 40, 50, 75];
+    const numPatches = 1000;
     for (let i = 0; i < numPatches; i++) {
         const patchSize = patchSizes[Math.floor(Math.random() * patchSizes.length)];
         const patchGeometry = new THREE.PlaneGeometry(patchSize, patchSize);
@@ -244,100 +238,53 @@ function createEnvironment() {
         });
         const patch = new THREE.Mesh(patchGeometry, patchMaterial);
         patch.rotation.x = -Math.PI / 2;
-        // Spread patches more evenly across the entire area
         patch.position.set(
-            -485 + Math.random() * 970,
-            -0.14 + Math.random() * 0.04, // More height variation
-            -485 + Math.random() * 970
+            -WORLD_SIZE/2 + Math.random() * WORLD_SIZE,
+            -0.14 + Math.random() * 0.04,
+            -WORLD_SIZE/2 + Math.random() * WORLD_SIZE
         );
         patch.rotation.z = Math.random() * Math.PI * 2;
         patch.receiveShadow = true;
         scene.add(patch);
     }
 
-    // Add huge number of tiny detail patches for rich texture
-    const numDetailPatches = 2000; // Dramatically increased from 600 to 2000
-    for (let i = 0; i < numDetailPatches; i++) {
-        const patchSize = 5 + Math.random() * 10; // Random sizes between 5 and 15
-        const patchGeometry = new THREE.PlaneGeometry(patchSize, patchSize);
-        const patchMaterial = new THREE.MeshStandardMaterial({
-            color: grassColors[Math.floor(Math.random() * grassColors.length)],
-            roughness: 1,
-            metalness: 0
-        });
-        const patch = new THREE.Mesh(patchGeometry, patchMaterial);
-        patch.rotation.x = -Math.PI / 2;
-        patch.position.set(
-            -490 + Math.random() * 980,
-            -0.13 + Math.random() * 0.04, // More height variation
-            -490 + Math.random() * 980
-        );
-        patch.rotation.z = Math.random() * Math.PI * 2;
-        patch.receiveShadow = true;
-        scene.add(patch);
-    }
-
-    // Add grass clumps for extra detail
-    const numGrassClumps = 1500; // Add lots of grass clumps
-    for (let i = 0; i < numGrassClumps; i++) {
-        const clumpGeometry = new THREE.PlaneGeometry(3, 3);
-        const clumpMaterial = new THREE.MeshStandardMaterial({
-            color: grassColors[Math.floor(Math.random() * grassColors.length)],
-            roughness: 1,
-            metalness: 0
-        });
-        const clump = new THREE.Mesh(clumpGeometry, clumpMaterial);
-        clump.rotation.x = -Math.PI / 2;
-        clump.position.set(
-            -495 + Math.random() * 990,
-            -0.12 + Math.random() * 0.05, // Even more height variation
-            -495 + Math.random() * 990
-        );
-        clump.rotation.z = Math.random() * Math.PI * 2;
-        clump.receiveShadow = true;
-        scene.add(clump);
-    }
-
-    // Create streets with narrower roads
+    // Create streets
     createStreets();
 
     // Create buildings
     createBuildings();
 
-    // Add more trees
+    // Add trees
     createTrees();
 }
 
 // Create street network
 function createStreets() {
-    // Street materials
     const streetMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x333333,  // Dark gray for asphalt
+        color: 0x333333,
         roughness: 0.9,
         metalness: 0.1
     });
 
     const sidewalkMaterial = new THREE.MeshStandardMaterial({
-        color: 0x777777,  // Lighter gray for sidewalks
+        color: 0x777777,
         roughness: 0.8,
         metalness: 0.1
     });
 
-    // Main roads - drastically reduced width
-    const mainRoadWidth = 8;  // Further reduced from 10 to 8
+    const mainRoadWidth = 8;
     const mainRoad = new THREE.Mesh(
-        new THREE.PlaneGeometry(mainRoadWidth, 1000),
+        new THREE.PlaneGeometry(mainRoadWidth, WORLD_SIZE),
         streetMaterial
     );
     mainRoad.rotation.x = -Math.PI / 2;
-    mainRoad.position.y = 0.01; // Slightly raised to prevent z-fighting
+    mainRoad.position.y = 0.01;
     mainRoad.receiveShadow = true;
     scene.add(mainRoad);
 
-    // Sidewalks along main road - minimal width
-    const sidewalkWidth = 1; // Further reduced from 1.5 to 1
+    const sidewalkWidth = 1;
     const leftSidewalk = new THREE.Mesh(
-        new THREE.PlaneGeometry(sidewalkWidth, 1000),
+        new THREE.PlaneGeometry(sidewalkWidth, WORLD_SIZE),
         sidewalkMaterial
     );
     leftSidewalk.rotation.x = -Math.PI / 2;
@@ -349,11 +296,10 @@ function createStreets() {
     rightSidewalk.position.x = mainRoadWidth/2 + sidewalkWidth/2;
     scene.add(rightSidewalk);
 
-    // Cross streets with sidewalks - spaced much further apart
-    for (let i = -400; i <= 400; i += 500) {
-        // Street - narrower cross streets
+    // Cross streets with sidewalks
+    for (let i = -WORLD_SIZE/2; i <= WORLD_SIZE/2; i += 500) {
         const crossStreet = new THREE.Mesh(
-            new THREE.PlaneGeometry(1000, mainRoadWidth),
+            new THREE.PlaneGeometry(WORLD_SIZE, mainRoadWidth),
             streetMaterial
         );
         crossStreet.rotation.x = -Math.PI / 2;
@@ -361,9 +307,8 @@ function createStreets() {
         crossStreet.receiveShadow = true;
         scene.add(crossStreet);
 
-        // Sidewalks for cross streets
         const crossSidewalkLeft = new THREE.Mesh(
-            new THREE.PlaneGeometry(1000, sidewalkWidth),
+            new THREE.PlaneGeometry(WORLD_SIZE, sidewalkWidth),
             sidewalkMaterial
         );
         crossSidewalkLeft.rotation.x = -Math.PI / 2;
@@ -374,59 +319,6 @@ function createStreets() {
         const crossSidewalkRight = crossSidewalkLeft.clone();
         crossSidewalkRight.position.z = i + mainRoadWidth/2 + sidewalkWidth/2;
         scene.add(crossSidewalkRight);
-
-        // Add grass strips along cross streets
-        const grassStripMaterial = new THREE.MeshStandardMaterial({
-            color: 0x2d5a27,
-            roughness: 1,
-            metalness: 0
-        });
-
-        // Add larger grass patches in corners
-        const cornerSize = 100; // Increased from 80 to 100
-        const cornerGrass = new THREE.Mesh(
-            new THREE.PlaneGeometry(cornerSize, cornerSize),
-            grassStripMaterial
-        );
-        cornerGrass.rotation.x = -Math.PI / 2;
-        cornerGrass.position.y = -0.05;
-
-        // Add corners at intersection with larger size
-        const corners = [
-            { x: -mainRoadWidth/2 - cornerSize/2, z: i - mainRoadWidth/2 - cornerSize/2 },
-            { x: mainRoadWidth/2 + cornerSize/2, z: i - mainRoadWidth/2 - cornerSize/2 },
-            { x: -mainRoadWidth/2 - cornerSize/2, z: i + mainRoadWidth/2 + cornerSize/2 },
-            { x: mainRoadWidth/2 + cornerSize/2, z: i + mainRoadWidth/2 + cornerSize/2 }
-        ];
-
-        corners.forEach(pos => {
-            const corner = cornerGrass.clone();
-            corner.position.x = pos.x;
-            corner.position.z = pos.z;
-            scene.add(corner);
-        });
-
-        // Add additional grass patches between intersections
-        if (i < 400) {
-            const midPoint = (i + 500) / 2;
-            const grassPatchSize = 150; // Increased size for more coverage
-            const midGrassPatch = new THREE.Mesh(
-                new THREE.PlaneGeometry(grassPatchSize, grassPatchSize),
-                grassStripMaterial
-            );
-            midGrassPatch.rotation.x = -Math.PI / 2;
-            midGrassPatch.position.y = -0.05;
-
-            [-1, 1].forEach(xMult => {
-                const patch = midGrassPatch.clone();
-                patch.position.set(
-                    xMult * (mainRoadWidth/2 + grassPatchSize/2),
-                    -0.05,
-                    midPoint
-                );
-                scene.add(patch);
-            });
-        }
     }
 
     createStreetLines(mainRoadWidth);
@@ -441,7 +333,7 @@ function createStreetLines(roadWidth) {
     });
 
     // Center lines on main road (double yellow lines)
-    for (let i = -500; i < 500; i += 4) {
+    for (let i = -WORLD_SIZE/2; i < WORLD_SIZE/2; i += 4) {
         // Left yellow line
         const leftLine = new THREE.Mesh(
             new THREE.PlaneGeometry(0.3, 2),
@@ -471,7 +363,7 @@ function createStreetLines(roadWidth) {
     }
 
     // Cross street lines
-    for (let i = -500; i < 500; i += 4) {
+    for (let i = -WORLD_SIZE/2; i < WORLD_SIZE/2; i += 4) {
         const line = new THREE.Mesh(
             new THREE.PlaneGeometry(2, 0.2),
             lineMaterial
@@ -497,8 +389,8 @@ function createBuildings() {
     const streetWidth = 40;  // Total width of street + sidewalks
     const safeDistance = 30; // Minimum distance from streets
     
-    for (let x = -400; x <= 400; x += blockSize + streetWidth) {
-        for (let z = -400; z <= 400; z += blockSize + streetWidth) {
+    for (let x = -WORLD_SIZE/2; x <= WORLD_SIZE/2; x += blockSize + streetWidth) {
+        for (let z = -WORLD_SIZE/2; z <= WORLD_SIZE/2; z += blockSize + streetWidth) {
             // Skip if this block is too close to main roads
             if (Math.abs(x) < streetWidth * 2 || Math.abs(z) < streetWidth * 2) continue;
             
@@ -959,6 +851,22 @@ function updateCarPhysics() {
     car.position.x += Math.sin(moveAngle) * moveSpeed;
     car.position.z += Math.cos(moveAngle) * moveSpeed;
     car.position.y = 0.5;
+
+    // World wrapping
+    if (car.position.x > WORLD_SIZE/2) {
+        car.position.x -= WORLD_SIZE;
+        updateEnvironmentPosition('x', -WORLD_SIZE);
+    } else if (car.position.x < -WORLD_SIZE/2) {
+        car.position.x += WORLD_SIZE;
+        updateEnvironmentPosition('x', WORLD_SIZE);
+    }
+    if (car.position.z > WORLD_SIZE/2) {
+        car.position.z -= WORLD_SIZE;
+        updateEnvironmentPosition('z', -WORLD_SIZE);
+    } else if (car.position.z < -WORLD_SIZE/2) {
+        car.position.z += WORLD_SIZE;
+        updateEnvironmentPosition('z', WORLD_SIZE);
+    }
     
     // Rotate car model
     car.rotation.y = moveAngle;
@@ -1147,8 +1055,8 @@ function createTrees() {
     const numClusters = 40;
     for (let i = 0; i < numClusters; i++) {
         // Generate cluster center point
-        const clusterX = -400 + Math.random() * 800;
-        const clusterZ = -400 + Math.random() * 800;
+        const clusterX = -WORLD_SIZE/2 + Math.random() * WORLD_SIZE;
+        const clusterZ = -WORLD_SIZE/2 + Math.random() * WORLD_SIZE;
         
         // Skip if too close to streets
         if (Math.abs(clusterX) < streetWidth * 2 || Math.abs(clusterZ) < streetWidth * 2) continue;
@@ -1170,8 +1078,8 @@ function createTrees() {
     }
 
     // Add additional scattered trees in safe zones
-    for (let x = -450; x <= 450; x += 40) {
-        for (let z = -450; z <= 450; z += 40) {
+    for (let x = -WORLD_SIZE/2; x <= WORLD_SIZE/2; x += 40) {
+        for (let z = -WORLD_SIZE/2; z <= WORLD_SIZE/2; z += 40) {
             // Skip if too close to streets
             if (Math.abs(x) < streetWidth * 2 || Math.abs(z) < streetWidth * 2) continue;
             
@@ -1189,6 +1097,114 @@ function createTrees() {
                 scene.add(createTree(treeX, treeZ, scale));
             }
         }
+    }
+}
+
+// Add function to update environment position
+function updateEnvironmentPosition(axis, offset) {
+    // Update buildings
+    buildings.forEach(building => {
+        building.mesh.position[axis] += offset;
+        building.bounds.translate(new THREE.Vector3(
+            axis === 'x' ? offset : 0,
+            0,
+            axis === 'z' ? offset : 0
+        ));
+
+        // Wrap buildings around
+        if (building.mesh.position[axis] > WORLD_SIZE/2) {
+            building.mesh.position[axis] -= WORLD_SIZE;
+            building.bounds.translate(new THREE.Vector3(
+                axis === 'x' ? -WORLD_SIZE : 0,
+                0,
+                axis === 'z' ? -WORLD_SIZE : 0
+            ));
+        } else if (building.mesh.position[axis] < -WORLD_SIZE/2) {
+            building.mesh.position[axis] += WORLD_SIZE;
+            building.bounds.translate(new THREE.Vector3(
+                axis === 'x' ? WORLD_SIZE : 0,
+                0,
+                axis === 'z' ? WORLD_SIZE : 0
+            ));
+        }
+    });
+
+    // Update trees
+    trees.forEach(tree => {
+        tree.mesh.position[axis] += offset;
+        tree.bounds.translate(new THREE.Vector3(
+            axis === 'x' ? offset : 0,
+            0,
+            axis === 'z' ? offset : 0
+        ));
+
+        // Wrap trees around
+        if (tree.mesh.position[axis] > WORLD_SIZE/2) {
+            tree.mesh.position[axis] -= WORLD_SIZE;
+            tree.bounds.translate(new THREE.Vector3(
+                axis === 'x' ? -WORLD_SIZE : 0,
+                0,
+                axis === 'z' ? -WORLD_SIZE : 0
+            ));
+        } else if (tree.mesh.position[axis] < -WORLD_SIZE/2) {
+            tree.mesh.position[axis] += WORLD_SIZE;
+            tree.bounds.translate(new THREE.Vector3(
+                axis === 'x' ? WORLD_SIZE : 0,
+                0,
+                axis === 'z' ? WORLD_SIZE : 0
+            ));
+        }
+    });
+
+    // Update streets and sidewalks
+    scene.children.forEach(child => {
+        if (child instanceof THREE.Mesh && 
+            (child.material.color.getHex() === 0x333333 || // Street material
+             child.material.color.getHex() === 0x777777 || // Sidewalk material
+             child.material.color.getHex() === 0xffff00 || // Yellow lines
+             child.material.color.getHex() === 0xffffff)) { // White lines
+            
+            child.position[axis] += offset;
+
+            // Wrap streets and lines around
+            if (child.position[axis] > WORLD_SIZE/2) {
+                child.position[axis] -= WORLD_SIZE;
+            } else if (child.position[axis] < -WORLD_SIZE/2) {
+                child.position[axis] += WORLD_SIZE;
+            }
+        }
+    });
+
+    // Update grass patches
+    scene.children.forEach(child => {
+        if (child instanceof THREE.Mesh && 
+            child.material.color.getHex() === 0x2d5a27) { // Grass material
+            
+            child.position[axis] += offset;
+
+            // Wrap grass patches around
+            if (child.position[axis] > WORLD_SIZE/2) {
+                child.position[axis] -= WORLD_SIZE;
+            } else if (child.position[axis] < -WORLD_SIZE/2) {
+                child.position[axis] += WORLD_SIZE;
+            }
+        }
+    });
+
+    // Update fire particles if they exist
+    if (fireParticles) {
+        const positions = fireParticles.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+            positions[i + (axis === 'x' ? 0 : 2)] += offset;
+            
+            // Wrap fire particles around
+            if (positions[i + (axis === 'x' ? 0 : 2)] > WORLD_SIZE/2) {
+                positions[i + (axis === 'x' ? 0 : 2)] -= WORLD_SIZE;
+            } else if (positions[i + (axis === 'x' ? 0 : 2)] < -WORLD_SIZE/2) {
+                positions[i + (axis === 'x' ? 0 : 2)] += WORLD_SIZE;
+            }
+        }
+        fireParticles.geometry.attributes.position.needsUpdate = true;
     }
 }
 
