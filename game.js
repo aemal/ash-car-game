@@ -523,11 +523,12 @@ function createBuildings() {
     // Define city blocks (areas where buildings can be placed)
     const blockSize = 180;  // Size of each city block
     const streetWidth = 40;  // Total width of street + sidewalks
+    const safeDistance = 30; // Minimum distance from streets
     
     for (let x = -400; x <= 400; x += blockSize + streetWidth) {
         for (let z = -400; z <= 400; z += blockSize + streetWidth) {
-            // Skip if this block intersects with main roads
-            if (Math.abs(x) < streetWidth/2 || Math.abs(z) < streetWidth/2) continue;
+            // Skip if this block is too close to main roads
+            if (Math.abs(x) < streetWidth * 2 || Math.abs(z) < streetWidth * 2) continue;
             
             // Create 3-5 buildings per block
             const buildingsInBlock = Math.floor(Math.random() * 3) + 3;
@@ -537,10 +538,13 @@ function createBuildings() {
                 const width = Math.random() * 20 + 15;   // 15-35 units wide
                 const depth = Math.random() * 20 + 15;   // 15-35 units deep
                 
-                // Position within block, keeping margin from streets
-                const margin = 5;
+                // Position within block, keeping larger margin from streets
+                const margin = safeDistance;
                 const xPos = x + Math.random() * (blockSize - width - margin * 2) + margin - blockSize/2;
                 const zPos = z + Math.random() * (blockSize - depth - margin * 2) + margin - blockSize/2;
+                
+                // Skip if too close to streets
+                if (Math.abs(xPos) < streetWidth * 2 || Math.abs(zPos) < streetWidth * 2) continue;
                 
                 // Create building
                 const building = new THREE.Group();
@@ -583,7 +587,6 @@ function createBuildings() {
                         );
                         building.add(window);
                         
-                        // Add windows to other sides
                         const windowBack = window.clone();
                         windowBack.position.z = -depth/2 - 0.1;
                         windowBack.rotation.y = Math.PI;
@@ -616,7 +619,6 @@ function createBuildings() {
                 building.receiveShadow = true;
                 scene.add(building);
                 
-                // Store building with its bounding box
                 const boundingBox = new THREE.Box3().setFromObject(building);
                 buildings.push({ mesh: building, bounds: boundingBox });
             }
@@ -1093,7 +1095,7 @@ function animate() {
     }
 }
 
-// Modify createTrees function to remove bush type and add more natural trees
+// Modify createTrees function to keep trees away from streets
 function createTrees() {
     // Tree creation helper function
     function createTree(x, z, scale = 1) {
@@ -1165,43 +1167,55 @@ function createTrees() {
         return tree;
     }
 
-    // Add trees along streets with increased density
-    const streetOffset = 20;
-    const treeSpacing = 10; // Further reduced spacing for more trees
+    // Define safe zones for tree placement
+    const streetWidth = 40;  // Total width of street + sidewalks
+    const safeDistance = 25; // Minimum distance from streets
 
-    // Trees along main street
-    for (let z = -450; z <= 450; z += treeSpacing) {
-        if (Math.random() > 0.2) {
-            const scale = 0.8 + Math.random() * 0.4;
-            scene.add(createTree(-streetOffset, z, scale));
-            scene.add(createTree(streetOffset, z, scale));
-        }
-    }
-
-    // Trees along cross streets
-    for (let x = -450; x <= 450; x += treeSpacing) {
-        if (Math.random() > 0.2) {
-            const scale = 0.8 + Math.random() * 0.4;
-            scene.add(createTree(x, -streetOffset, scale));
-            scene.add(createTree(x, streetOffset, scale));
-        }
-    }
-
-    // Add more random tree clusters in open areas
-    const numClusters = 40; // Increased from 30 to 40
+    // Add trees in clusters, away from streets
+    const numClusters = 40;
     for (let i = 0; i < numClusters; i++) {
+        // Generate cluster center point
         const clusterX = -400 + Math.random() * 800;
         const clusterZ = -400 + Math.random() * 800;
         
-        if (Math.abs(clusterX) < 30 || Math.abs(clusterZ) < 30) continue;
+        // Skip if too close to streets
+        if (Math.abs(clusterX) < streetWidth * 2 || Math.abs(clusterZ) < streetWidth * 2) continue;
         
-        // Create larger clusters of 8-15 trees
+        // Create cluster of trees
         const numTrees = 8 + Math.floor(Math.random() * 8);
         for (let j = 0; j < numTrees; j++) {
             const offsetX = -20 + Math.random() * 40;
             const offsetZ = -20 + Math.random() * 40;
+            const treeX = clusterX + offsetX;
+            const treeZ = clusterZ + offsetZ;
+            
+            // Skip if individual tree is too close to streets
+            if (Math.abs(treeX) < streetWidth * 2 || Math.abs(treeZ) < streetWidth * 2) continue;
+            
             const scale = 0.8 + Math.random() * 0.6;
-            scene.add(createTree(clusterX + offsetX, clusterZ + offsetZ, scale));
+            scene.add(createTree(treeX, treeZ, scale));
+        }
+    }
+
+    // Add additional scattered trees in safe zones
+    for (let x = -450; x <= 450; x += 40) {
+        for (let z = -450; z <= 450; z += 40) {
+            // Skip if too close to streets
+            if (Math.abs(x) < streetWidth * 2 || Math.abs(z) < streetWidth * 2) continue;
+            
+            // Random chance to place a tree
+            if (Math.random() < 0.3) {
+                const offsetX = -15 + Math.random() * 30;
+                const offsetZ = -15 + Math.random() * 30;
+                const treeX = x + offsetX;
+                const treeZ = z + offsetZ;
+                
+                // Final safety check
+                if (Math.abs(treeX) < streetWidth * 2 || Math.abs(treeZ) < streetWidth * 2) continue;
+                
+                const scale = 0.8 + Math.random() * 0.4;
+                scene.add(createTree(treeX, treeZ, scale));
+            }
         }
     }
 }
