@@ -490,22 +490,48 @@ function createBuildings() {
     }
 }
 
+// Animate car previews
+function animatePreviews() {
+    requestAnimationFrame(animatePreviews);
+    
+    previewScenes.forEach((scene, index) => {
+        if (scene.children.length > 0) {
+            // Rotate the car model
+            scene.children[0].rotation.y += 0.01;
+            
+            // Render the preview
+            if (previewRenderers[index] && previewCameras[index]) {
+                previewRenderers[index].render(scene, previewCameras[index]);
+            }
+        }
+    });
+}
+
 // Initialize car selection
 function initCarSelection() {
     console.log('🚗 Initializing car selection...');
     const loader = new THREE.GLTFLoader(loadingManager);
-    const carTypes = ['sports', 'muscle', 'classic'];
+    const carTypes = ['sports', 'muscle', 'classic', 'modern', 'luxury', 'retro'];
     let loadedModels = 0;
+
+    // Show car selection menu
+    document.querySelector('.car-selection-menu').style.display = 'flex';
+    document.querySelector('.game-container').style.display = 'none';
 
     // Create preview scenes for each car
     carTypes.forEach(type => {
         console.log(`🎨 Setting up preview scene for ${type} car`);
         const previewScene = new THREE.Scene();
+        previewScene.background = new THREE.Color(0x87CEEB);  // Sky blue background
         const previewCamera = new THREE.PerspectiveCamera(75, 300 / 200, 0.1, 1000);
         const previewRenderer = new THREE.WebGLRenderer({ antialias: true });
         
         previewRenderer.setSize(300, 200);
-        document.getElementById(`${type}CarPreview`).appendChild(previewRenderer.domElement);
+        const previewContainer = document.getElementById(`${type}CarPreview`);
+        if (previewContainer) {
+            previewContainer.innerHTML = ''; // Clear existing content
+            previewContainer.appendChild(previewRenderer.domElement);
+        }
         
         // Add lighting to preview
         const light = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -520,33 +546,10 @@ function initCarSelection() {
         previewCameras.push(previewCamera);
         previewRenderers.push(previewRenderer);
 
-        // Load car model
-        console.log(`📥 Loading ${type} car model...`);
-        loader.load(
-            `models/${type}_car.glb`,
-            (gltf) => {
-                console.log(`✨ ${type} car model loaded successfully`);
-                const model = gltf.scene;
-                model.scale.set(0.5, 0.5, 0.5);
-                model.position.set(0, 0, 0);
-                model.rotation.y = Math.PI;
-                previewScene.add(model);
-                carModels[type] = model;
-                loadedModels++;
-            },
-            (progress) => {
-                const percentComplete = (progress.loaded / progress.total) * 100;
-                console.log(`${type} car: ${Math.round(percentComplete)}% loaded`);
-            },
-            (error) => {
-                console.error(`❌ Error loading ${type} car model:`, error);
-                console.log(`⚠️ Using fallback basic car for ${type}`);
-                const basicCar = createBasicCar(type);
-                previewScene.add(basicCar);
-                carModels[type] = basicCar;
-                loadedModels++;
-            }
-        );
+        // Create and add basic car model
+        const basicCar = createBasicCar(type);
+        previewScene.add(basicCar);
+        carModels[type] = basicCar;
     });
 
     // Add click handlers for car selection
@@ -555,6 +558,7 @@ function initCarSelection() {
             document.querySelectorAll('.car-option').forEach(opt => opt.classList.remove('selected'));
             option.classList.add('selected');
             selectedCarType = option.dataset.car;
+            console.log(`🚗 Selected car type: ${selectedCarType}`);
         });
     });
 
@@ -574,7 +578,7 @@ function createBasicCar(type) {
     // Colors based on car type
     const colors = {
         sports: {
-            body: 0xff0000,    // Red
+            body: 0xff0000,    // Bright Red
             windows: 0x111111,  // Dark tint
             lights: 0xffffff,   // White
             trim: 0x333333,    // Dark gray
@@ -582,10 +586,10 @@ function createBasicCar(type) {
             taillightGlow: 0xff3333  // Bright red glow
         },
         muscle: {
-            body: 0x000099,    // Dark blue
+            body: 0xff6600,    // Orange
             windows: 0x222222,  // Dark tint
             lights: 0xffffff,   // White
-            trim: 0x666666,    // Medium gray
+            trim: 0x444444,    // Medium gray
             headlightGlow: 0xffffcc, // Warm white glow
             taillightGlow: 0xff3333  // Bright red glow
         },
@@ -594,6 +598,30 @@ function createBasicCar(type) {
             windows: 0x333333,  // Medium tint
             lights: 0xffffff,   // White
             trim: 0xcccccc,    // Light gray
+            headlightGlow: 0xffffcc, // Warm white glow
+            taillightGlow: 0xff3333  // Bright red glow
+        },
+        modern: {
+            body: 0x0066ff,    // Bright Blue
+            windows: 0x222222,  // Dark tint
+            lights: 0xffffff,   // White
+            trim: 0x555555,    // Medium gray
+            headlightGlow: 0xffffcc, // Warm white glow
+            taillightGlow: 0xff3333  // Bright red glow
+        },
+        luxury: {
+            body: 0x1a1a1a,    // Black
+            windows: 0x111111,  // Very dark tint
+            lights: 0xffffff,   // White
+            trim: 0xc0c0c0,    // Silver
+            headlightGlow: 0xffffcc, // Warm white glow
+            taillightGlow: 0xff3333  // Bright red glow
+        },
+        retro: {
+            body: 0xff9933,    // Classic Orange
+            windows: 0x444444,  // Light tint
+            lights: 0xffffff,   // White
+            trim: 0xdddddd,    // Light silver
             headlightGlow: 0xffffcc, // Warm white glow
             taillightGlow: 0xff3333  // Bright red glow
         }
@@ -871,36 +899,6 @@ function createBasicCar(type) {
     });
 
     return carGroup;
-}
-
-// Start game with selected car
-async function startGame() {
-    if (!selectedCarType) {
-        alert('Please select a car first!');
-        return;
-    }
-
-    // Hide car selection menu
-    document.querySelector('.car-selection-menu').style.display = 'none';
-    document.querySelector('.game-container').style.display = 'block';
-
-    // Clone the selected car model
-    car = carModels[selectedCarType].clone();
-    car.position.set(0, 0.5, 0);
-    scene.add(car);
-
-    // Start engine sound
-    try {
-        await sounds.engine.play();
-        console.log('🎵 Engine sound started');
-    } catch (error) {
-        console.error('❌ Error starting engine sound:', error);
-    }
-
-    isGameStarted = true;
-
-    // Start game loop
-    animate();
 }
 
 // Handle key events
@@ -1503,6 +1501,36 @@ function updateEnvironmentPosition(axis, offset) {
         }
         fireParticles.geometry.attributes.position.needsUpdate = true;
     }
+}
+
+// Start game with selected car
+async function startGame() {
+    if (!selectedCarType) {
+        alert('Please select a car first!');
+        return;
+    }
+
+    // Hide car selection menu
+    document.querySelector('.car-selection-menu').style.display = 'none';
+    document.querySelector('.game-container').style.display = 'block';
+
+    // Clone the selected car model
+    car = carModels[selectedCarType].clone();
+    car.position.set(0, 0.5, 0);
+    scene.add(car);
+
+    // Start engine sound
+    try {
+        await sounds.engine.play();
+        console.log('🎵 Engine sound started');
+    } catch (error) {
+        console.error('❌ Error starting engine sound:', error);
+    }
+
+    isGameStarted = true;
+
+    // Start game loop
+    animate();
 }
 
 // Start the game
