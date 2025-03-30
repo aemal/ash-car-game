@@ -10,6 +10,92 @@ let buildings = []; // Store building refences
 let isGameOver = false;
 let fireParticles = null;
 let countdownMesh = null;
+
+// Sound variables
+let sounds = {
+    engine: new Audio('sounds/engine.mp3'),
+    collision: new Audio('sounds/collision.mp3'),
+    gear: new Audio('sounds/gear.mp3')
+};
+
+// Add lastGear variable back
+let lastGear = 'N';
+
+// Sound manager
+const soundManager = {
+    init() {
+        console.log('🎵 Initializing sound manager...');
+        
+        // Set up engine sound
+        sounds.engine.loop = true;
+        sounds.engine.volume = 0.3;
+        
+        // Set up other sounds
+        sounds.collision.volume = 0.5;
+        sounds.gear.volume = 0.3;
+        
+        // Add error handlers
+        Object.keys(sounds).forEach(key => {
+            sounds[key].onerror = (e) => {
+                console.error(`❌ Error loading sound ${key}:`, e);
+            };
+            sounds[key].oncanplaythrough = () => {
+                console.log(`✅ Sound loaded: ${key}`);
+            };
+        });
+
+        // Add click handler to start audio
+        document.addEventListener('click', () => {
+            if (sounds.engine.paused) {
+                sounds.engine.play().catch(e => console.log('Waiting for game to start'));
+            }
+        }, { once: true });
+    },
+
+    playSound(name, volume = 1) {
+        if (!sounds[name]) {
+            console.error(`❌ Sound not found: ${name}`);
+            return;
+        }
+        
+        try {
+            const sound = sounds[name];
+            sound.currentTime = 0;
+            sound.volume = volume;
+            sound.play().catch(error => {
+                console.error(`❌ Error playing sound ${name}:`, error);
+            });
+            console.log(`🎵 Playing sound: ${name} (volume: ${volume})`);
+        } catch (error) {
+            console.error(`❌ Error playing sound ${name}:`, error);
+        }
+    },
+
+    updateEngineSound(speed, gear) {
+        if (!sounds.engine) return;
+
+        const speedRatio = Math.abs(speed / maxSpeed);
+        const volume = 0.1 + speedRatio * 0.4; // Base volume of 0.1, max 0.5
+        
+        try {
+            if (sounds.engine.paused && isGameStarted) {
+                sounds.engine.play().catch(error => {
+                    console.error('❌ Error starting engine sound:', error);
+                });
+            }
+            
+            sounds.engine.volume = volume;
+            
+            if (gear !== lastGear) {
+                this.playSound('gear', 0.3);
+                lastGear = gear;
+            }
+        } catch (error) {
+            console.error('❌ Error updating engine sound:', error);
+        }
+    }
+};
+
 let loadingManager = new THREE.LoadingManager(
     // onLoad
     () => {
@@ -84,8 +170,14 @@ function init() {
     // Show loading message
     document.querySelector('.loading-message').classList.add('visible');
 
+    // Initialize sound system
+    soundManager.init();
+
     // Initialize car selection
     initCarSelection();
+
+    // Start animation loop
+    animate();
 }
 
 // Create the environment (streets, buildings, etc.)
@@ -432,7 +524,7 @@ function createBasicCar(type) {
 }
 
 // Start game with selected car
-function startGame() {
+async function startGame() {
     if (!selectedCarType) {
         alert('Please select a car first!');
         return;
@@ -447,12 +539,13 @@ function startGame() {
     car.position.set(0, 0.5, 0);
     scene.add(car);
 
-    // Remove OrbitControls - we'll use our custom camera system
-    // controls = new THREE.OrbitControls(camera, renderer.domElement);
-    // controls.enableDamping = true;
-    // controls.dampingFactor = 0.05;
-    // controls.maxDistance = 20;
-    // controls.minDistance = 5;
+    // Start engine sound
+    try {
+        await sounds.engine.play();
+        console.log('🎵 Engine sound started');
+    } catch (error) {
+        console.error('❌ Error starting engine sound:', error);
+    }
 
     isGameStarted = true;
 
@@ -559,6 +652,13 @@ function handleCollision() {
     isGameOver = true;
     createFireEffect(car.position);
     
+    // Play collision sound
+    soundManager.playSound('collision', 0.5);
+    
+    // Stop engine sound
+    sounds.engine.pause();
+    sounds.engine.currentTime = 0;
+    
     // Start countdown animation
     let count = 3;
     createCountdownText(count);
@@ -604,6 +704,14 @@ function resetGame() {
     
     // Reset car position and physics
     resetCarPosition();
+    
+    // Restart engine sound
+    try {
+        sounds.engine.play();
+        console.log('🎵 Engine sound restarted');
+    } catch (error) {
+        console.error('❌ Error restarting engine sound:', error);
+    }
     
     // Reset game state
     isGameOver = false;
@@ -651,6 +759,9 @@ function updateCarPhysics() {
         speed *= (1 - excess * 0.1); // Smooth speed limiting
         currentSpeedKmh = Math.min(currentSpeedKmh, maxSpeed);
     }
+
+    // Update engine sound based on speed and gear
+    soundManager.updateEngineSound(currentSpeedKmh, gear);
 
     // Update camera angle based on left/right keys with speed-based sensitivity
     const turnSensitivity = Math.max(0.01, 0.03 * (1 - currentSpeedKmh / (maxSpeed * 1.5)));
@@ -766,7 +877,10 @@ function animate() {
         }
     }
     
-    renderer.render(scene, camera);
+    // Render the scene
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
 }
 
 // Start the game
