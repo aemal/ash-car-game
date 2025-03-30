@@ -16,7 +16,8 @@ let countdownMesh = null;
 let sounds = {
     engine: new Audio('sounds/engine.mp3'),
     collision: new Audio('sounds/collision.mp3'),
-    gear: new Audio('sounds/gear.mp3')
+    gear: new Audio('sounds/gear.mp3'),
+    birds: new Audio('sounds/bird.wav')
 };
 
 // Add lastGear variable back
@@ -35,6 +36,10 @@ const soundManager = {
         sounds.collision.volume = 0.5;
         sounds.gear.volume = 0.3;
         
+        // Set up background bird sounds
+        sounds.birds.loop = true;
+        sounds.birds.volume = 0.2;  // Lower volume for ambient effect
+        
         // Add error handlers
         Object.keys(sounds).forEach(key => {
             sounds[key].onerror = (e) => {
@@ -45,10 +50,17 @@ const soundManager = {
             };
         });
 
+        // Start playing background bird sounds
+        sounds.birds.play().catch(e => console.log('Waiting for user interaction to play bird sounds'));
+
         // Add click handler to start audio
         document.addEventListener('click', () => {
+            // Start both engine and bird sounds
             if (sounds.engine.paused) {
                 sounds.engine.play().catch(e => console.log('Waiting for game to start'));
+            }
+            if (sounds.birds.paused) {
+                sounds.birds.play().catch(e => console.log('Error playing bird sounds:', e));
             }
         }, { once: true });
     },
@@ -124,7 +136,7 @@ let gear = 'N';
 let rpm = 0;
 let handbrake = false;
 let cameraMode = 'third';
-let maxSpeed = 120;
+let maxSpeed = 70;
 let currentSpeedKmh = 0;
 let cameraAngle = 0;
 let turnAngle = 0; // Track the car's turn angle
@@ -913,6 +925,9 @@ function onKeyDown(event) {
     if (event.key.toLowerCase() === 'r') {
         resetCarPosition();
     }
+    if (event.key === 'Escape') {
+        returnToCarSelection();
+    }
 }
 
 function onKeyUp(event) {
@@ -1003,7 +1018,7 @@ function handleCollision() {
     // Play collision sound
     soundManager.playSound('collision', 0.5);
     
-    // Stop engine sound
+    // Stop engine sound but keep birds playing
     sounds.engine.pause();
     sounds.engine.currentTime = 0;
     
@@ -1531,6 +1546,49 @@ async function startGame() {
 
     // Start game loop
     animate();
+}
+
+// Add function to return to car selection
+function returnToCarSelection() {
+    // Reset game state
+    isGameStarted = false;
+    
+    // Stop engine sound but keep birds playing
+    if (sounds.engine) {
+        sounds.engine.pause();
+        sounds.engine.currentTime = 0;
+    }
+    
+    // Make sure bird sounds are playing
+    if (sounds.birds && sounds.birds.paused) {
+        sounds.birds.play().catch(e => console.log('Error playing bird sounds:', e));
+    }
+    
+    // Remove current car from scene
+    if (car) {
+        scene.remove(car);
+        car = null;
+    }
+    
+    // Reset physics
+    speed = 0;
+    acceleration = 0;
+    gear = 'N';
+    
+    // Reset camera
+    cameraMode = 'third';
+    cameraAngle = 0;
+    
+    // Show car selection menu and hide game container
+    document.querySelector('.car-selection-menu').style.display = 'flex';
+    document.querySelector('.game-container').style.display = 'none';
+    
+    // Reset car selection
+    selectedCarType = null;
+    document.querySelectorAll('.car-option').forEach(opt => opt.classList.remove('selected'));
+    
+    // Restart preview animations
+    animatePreviews();
 }
 
 // Start the game
