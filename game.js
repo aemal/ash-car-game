@@ -122,12 +122,15 @@ let steering = 0;
 let gear = 'N';
 let rpm = 0;
 let handbrake = false;
-let cameraMode = 'third'; // 'first' or 'third'
-let maxSpeed = 400; // Increased maximum speed in km/h
+let cameraMode = 'third';
+let maxSpeed = 120;
 let currentSpeedKmh = 0;
-let cameraAngle = 0; // Track camera rotation
-let accelerationRate = 0.8; // Base acceleration rate
-let maxAcceleration = 0.5; // Maximum acceleration
+let cameraAngle = 0;
+let turnAngle = 0; // Track the car's turn angle
+let accelerationRate = 0.5; // Base acceleration
+let maxAcceleration = 0.5;
+let turnSpeed = 0.03; // Base turn speed
+let driftFactor = 0.98; // How much the car maintains its previous direction
 
 // Game state
 let keys = {};
@@ -721,74 +724,78 @@ function resetGame() {
 function updateCarPhysics() {
     if (!car || isGameOver) return;
 
-    const deltaTime = 1/60; // Assuming 60fps for consistent physics
+    const deltaTime = 1/60;
     
-    // Update speed based on acceleration with continuous acceleration
+    // Handle acceleration
     if (keys['ArrowUp']) {
-        // Increase acceleration rate the longer the key is held
-        accelerationRate = Math.min(accelerationRate + 0.1 * deltaTime, 2.0);
         acceleration = Math.min(acceleration + accelerationRate * deltaTime, maxAcceleration);
         gear = 'D';
     } else if (keys['ArrowDown']) {
-        accelerationRate = Math.min(accelerationRate + 0.1 * deltaTime, 1.0);
-        acceleration = Math.max(acceleration - accelerationRate * deltaTime, -0.3);
+        acceleration = Math.max(acceleration - accelerationRate * deltaTime, -maxAcceleration * 0.6);
         gear = 'R';
     } else {
-        // Reset acceleration rate when not accelerating
-        accelerationRate = 0.8;
-        acceleration *= 0.98; // Reduced friction for more momentum
+        acceleration *= 0.95;
         if (Math.abs(acceleration) < 0.01) {
             acceleration = 0;
             gear = 'N';
         }
     }
 
-    // Update speed with improved physics
+    // Update speed with momentum
     speed += acceleration;
     
-    // Apply progressive air resistance (less at lower speeds, more at higher speeds)
-    const airResistance = Math.pow(Math.abs(speed), 1.3) * 0.0005;
-    speed *= (1 - airResistance);
+    // Apply more realistic friction based on speed
+    const friction = Math.abs(speed) * 0.02;
+    speed *= (1 - friction);
 
-    // Convert speed to km/h for display (speed is in units/frame)
-    currentSpeedKmh = Math.abs(speed * 3600); // Convert to km/h
+    // Handle steering with speed-based sensitivity
+    const speedFactor = Math.min(Math.abs(speed) / maxSpeed, 1);
+    const currentTurnSpeed = turnSpeed * (1 + speedFactor);
 
-    // Clamp speed to maximum with smooth approach
-    if (currentSpeedKmh > maxSpeed) {
-        const excess = (currentSpeedKmh - maxSpeed) / maxSpeed;
-        speed *= (1 - excess * 0.1); // Smooth speed limiting
-        currentSpeedKmh = Math.min(currentSpeedKmh, maxSpeed);
-    }
-
-    // Update engine sound based on speed and gear
-    soundManager.updateEngineSound(currentSpeedKmh, gear);
-
-    // Update camera angle based on left/right keys with speed-based sensitivity
-    const turnSensitivity = Math.max(0.01, 0.03 * (1 - currentSpeedKmh / (maxSpeed * 1.5)));
     if (keys['ArrowLeft']) {
-        cameraAngle += turnSensitivity * (1 + currentSpeedKmh / 100);
+        turnAngle += currentTurnSpeed * (1 - speedFactor * 0.5);
     } else if (keys['ArrowRight']) {
-        cameraAngle -= turnSensitivity * (1 + currentSpeedKmh / 100);
+        turnAngle -= currentTurnSpeed * (1 - speedFactor * 0.5);
+    } else {
+        // Return wheels to center gradually
+        turnAngle *= 0.95;
     }
+
+    // Limit turn angle
+    turnAngle = Math.max(Math.min(turnAngle, Math.PI / 3), -Math.PI / 3);
+
+    // Update camera angle with drift effect
+    cameraAngle = cameraAngle * driftFactor + turnAngle * (1 - driftFactor);
+
+    // Convert speed to km/h for display
+    currentSpeedKmh = Math.abs(speed) * 60;
+
+    // Clamp speed
+    if (currentSpeedKmh > maxSpeed) {
+        speed *= maxSpeed / currentSpeedKmh;
+        currentSpeedKmh = maxSpeed;
+    }
+
+    // Update engine sound
+    soundManager.updateEngineSound(currentSpeedKmh, gear);
 
     // Calculate movement direction based on camera angle
     const moveAngle = cameraAngle;
     
-    // Update car position and rotation with speed-based movement
-    const moveSpeed = speed * (1 + currentSpeedKmh / maxSpeed * 0.5); // Increase movement speed at higher speeds
+    // Update car position with improved physics
+    const moveSpeed = speed * (1 + currentSpeedKmh / maxSpeed * 0.2);
     car.position.x += Math.sin(moveAngle) * moveSpeed;
     car.position.z += Math.cos(moveAngle) * moveSpeed;
-    car.position.y = 0.5; // Keep the car at a fixed height
+    car.position.y = 0.5;
     
-    // Rotate car to face movement direction with smooth interpolation
-    const targetRotation = moveAngle;
-    car.rotation.y = targetRotation;
+    // Rotate car model
+    car.rotation.y = moveAngle;
 
     // Update HUD
     document.getElementById('speedValue').textContent = Math.round(currentSpeedKmh);
     document.getElementById('gearValue').textContent = gear;
 
-    // Check for collisions after updating position
+    // Check for collisions
     checkCollisions();
 }
 
@@ -800,43 +807,47 @@ function updateCamera() {
     const idealLookat = new THREE.Vector3();
     
     if (cameraMode === 'third') {
-        // Calculate ideal camera position
-        const distance = 7;
-        const height = 3;
+        // Adjust camera distance based on speed
+        const baseDistance = 7;
+        const speedBonus = (currentSpeedKmh / maxSpeed) * 3;
+        const distance = baseDistance + speedBonus;
+        const height = 3 + speedBonus * 0.5;
         
-        // Calculate the ideal camera position behind the car
+        // Calculate camera position with smooth follow
         idealOffset.set(
             car.position.x - Math.sin(cameraAngle) * distance,
             car.position.y + height,
             car.position.z - Math.cos(cameraAngle) * distance
         );
         
-        // Calculate the look-at point slightly ahead of the car
+        // Look ahead of the car
+        const lookAheadDistance = 5 + (currentSpeedKmh / maxSpeed) * 5;
         idealLookat.set(
-            car.position.x + Math.sin(cameraAngle) * 5,
+            car.position.x + Math.sin(cameraAngle) * lookAheadDistance,
             car.position.y + 1,
-            car.position.z + Math.cos(cameraAngle) * 5
+            car.position.z + Math.cos(cameraAngle) * lookAheadDistance
         );
         
-        // Smoothly interpolate camera position
+        // Smooth camera movement
         camera.position.lerp(idealOffset, 0.1);
         
-        // Always look at the target point
-        camera.lookAt(idealLookat);
+        // Update camera target
+        const currentTarget = new THREE.Vector3();
+        camera.getWorldDirection(currentTarget);
+        const targetPosition = new THREE.Vector3().copy(idealLookat);
+        camera.lookAt(targetPosition);
         
     } else {
         // First person view
         const height = 1.5;
         const distance = 0.5;
         
-        // Position camera at driver's position
         camera.position.set(
             car.position.x + Math.sin(cameraAngle) * distance,
             car.position.y + height,
             car.position.z + Math.cos(cameraAngle) * distance
         );
         
-        // Look in the direction the car is facing
         camera.lookAt(
             car.position.x + Math.sin(cameraAngle) * 10,
             car.position.y + height,
@@ -854,6 +865,7 @@ function resetCarPosition() {
         acceleration = 0;
         accelerationRate = 0.8;
         cameraAngle = 0;
+        turnAngle = 0;
         gear = 'N';
     }
 }
