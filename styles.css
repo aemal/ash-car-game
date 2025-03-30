@@ -52,28 +52,6 @@ body {
     letter-spacing: 2px;
 }
 
-.controls {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    font-size: 18px;
-    z-index: 100;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 15px 25px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.controls p {
-    margin: 0;
-    white-space: nowrap;
-}
-
 .game-over {
     position: absolute;
     top: 50%;

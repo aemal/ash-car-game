@@ -565,14 +565,311 @@ function initCarSelection() {
 // Create a basic car as fallback
 function createBasicCar(type) {
     const carGroup = new THREE.Group();
-    const geometry = new THREE.BoxGeometry(1, 0.5, 2);
-    const material = new THREE.MeshStandardMaterial({ 
-        color: type === 'sports' ? 0xff0000 : 
-               type === 'muscle' ? 0x0000ff : 0x00ff00 
+    
+    // Car body dimensions
+    const bodyWidth = 2;
+    const bodyHeight = 1.2;
+    const bodyLength = 4;
+    
+    // Colors based on car type
+    const colors = {
+        sports: {
+            body: 0xff0000,    // Red
+            windows: 0x111111,  // Dark tint
+            lights: 0xffffff,   // White
+            trim: 0x333333,    // Dark gray
+            headlightGlow: 0xffffcc, // Warm white glow
+            taillightGlow: 0xff3333  // Bright red glow
+        },
+        muscle: {
+            body: 0x000099,    // Dark blue
+            windows: 0x222222,  // Dark tint
+            lights: 0xffffff,   // White
+            trim: 0x666666,    // Medium gray
+            headlightGlow: 0xffffcc, // Warm white glow
+            taillightGlow: 0xff3333  // Bright red glow
+        },
+        classic: {
+            body: 0x009900,    // Dark green
+            windows: 0x333333,  // Medium tint
+            lights: 0xffffff,   // White
+            trim: 0xcccccc,    // Light gray
+            headlightGlow: 0xffffcc, // Warm white glow
+            taillightGlow: 0xff3333  // Bright red glow
+        }
+    };
+
+    const carColor = colors[type] || colors.sports;
+
+    // Main body (lower part)
+    const bodyGeometry = new THREE.BoxGeometry(bodyWidth, bodyHeight * 0.7, bodyLength);
+    const bodyMaterial = new THREE.MeshPhongMaterial({
+        color: carColor.body,
+        specular: 0x555555,
+        shininess: 100
     });
-    const car = new THREE.Mesh(geometry, material);
-    car.castShadow = true;
-    carGroup.add(car);
+    const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    bodyMesh.position.y = bodyHeight * 0.4;
+    carGroup.add(bodyMesh);
+
+    // Upper body (cabin)
+    const cabinGeometry = new THREE.BoxGeometry(bodyWidth * 0.8, bodyHeight * 0.5, bodyLength * 0.6);
+    const cabinMaterial = new THREE.MeshPhysicalMaterial({
+        color: carColor.windows,
+        transparent: true,
+        opacity: 0.7,
+        metalness: 0.9,
+        roughness: 0.1,
+        envMapIntensity: 1,
+        clearcoat: 1,
+        clearcoatRoughness: 0.1,
+        transmission: 0.5,
+        reflectivity: 1
+    });
+    const cabinMesh = new THREE.Mesh(cabinGeometry, cabinMaterial);
+    cabinMesh.position.y = bodyHeight * 0.95;
+    carGroup.add(cabinMesh);
+
+    // Windows with enhanced glass effect
+    const windowMaterial = new THREE.MeshPhysicalMaterial({
+        color: carColor.windows,
+        transparent: true,
+        opacity: 0.7,
+        metalness: 0.9,
+        roughness: 0.1,
+        envMapIntensity: 1,
+        clearcoat: 1,
+        clearcoatRoughness: 0.1,
+        transmission: 0.5,
+        reflectivity: 1
+    });
+
+    // Windshield
+    const windshieldGeometry = new THREE.PlaneGeometry(bodyWidth * 0.75, bodyHeight * 0.5);
+    const windshield = new THREE.Mesh(windshieldGeometry, windowMaterial);
+    windshield.position.set(0, bodyHeight * 0.9, bodyLength * 0.15);
+    windshield.rotation.x = Math.PI * 0.2;
+    carGroup.add(windshield);
+
+    // Rear window
+    const rearWindow = new THREE.Mesh(windshieldGeometry, windowMaterial);
+    rearWindow.position.set(0, bodyHeight * 0.9, -bodyLength * 0.15);
+    rearWindow.rotation.x = -Math.PI * 0.2;
+    carGroup.add(rearWindow);
+
+    // Side windows
+    const sideWindowGeometry = new THREE.PlaneGeometry(bodyLength * 0.4, bodyHeight * 0.4);
+    [-1, 1].forEach(side => {
+        const sideWindow = new THREE.Mesh(sideWindowGeometry, windowMaterial);
+        sideWindow.position.set(side * (bodyWidth * 0.4), bodyHeight * 0.9, 0);
+        sideWindow.rotation.y = side * Math.PI * 0.5;
+        carGroup.add(sideWindow);
+    });
+
+    // Wheels
+    const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 24);
+    const wheelMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x333333,
+        specular: 0x444444,
+        shininess: 30
+    });
+
+    // Wheel positions
+    const wheelPositions = [
+        { x: -bodyWidth * 0.5, y: 0.4, z: bodyLength * 0.3 },  // Front Left
+        { x: bodyWidth * 0.5, y: 0.4, z: bodyLength * 0.3 },   // Front Right
+        { x: -bodyWidth * 0.5, y: 0.4, z: -bodyLength * 0.3 }, // Rear Left
+        { x: bodyWidth * 0.5, y: 0.4, z: -bodyLength * 0.3 }   // Rear Right
+    ];
+
+    wheelPositions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        wheel.position.set(pos.x, pos.y, pos.z);
+        wheel.rotation.z = Math.PI * 0.5;
+        carGroup.add(wheel);
+
+        // Add wheel rim
+        const rimGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.31, 8);
+        const rimMaterial = new THREE.MeshPhongMaterial({
+            color: carColor.trim,
+            specular: 0xffffff,
+            shininess: 100
+        });
+        const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+        wheel.add(rim);
+    });
+
+    // Enhanced headlights with multiple components
+    const headlightGeometry = new THREE.CircleGeometry(0.2, 16);
+    const headlightMaterial = new THREE.MeshPhysicalMaterial({
+        color: carColor.lights,
+        emissive: carColor.lights,
+        emissiveIntensity: 5,
+        metalness: 0.9,
+        roughness: 0.1,
+        clearcoat: 1,
+        reflectivity: 1
+    });
+
+    const headlightGlowMaterial = new THREE.MeshPhysicalMaterial({
+        color: carColor.headlightGlow,
+        emissive: carColor.headlightGlow,
+        emissiveIntensity: 8,
+        transparent: true,
+        opacity: 0.9
+    });
+
+    [-0.6, 0.6].forEach(x => {
+        // Main headlight
+        const headlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+        headlight.position.set(x, bodyHeight * 0.4, bodyLength * 0.5 + 0.01);
+        carGroup.add(headlight);
+
+        // Add actual light source for headlights
+        const headlightSource = new THREE.PointLight(carColor.headlightGlow, 2, 50);
+        headlightSource.position.set(x, bodyHeight * 0.4, bodyLength * 0.5 + 0.5);
+        carGroup.add(headlightSource);
+
+        // Headlight glow
+        const headlightGlow = new THREE.Mesh(
+            new THREE.CircleGeometry(0.4, 32),
+            headlightGlowMaterial
+        );
+        headlightGlow.position.set(x, bodyHeight * 0.4, bodyLength * 0.5);
+        carGroup.add(headlightGlow);
+
+        // Additional outer glow
+        const outerGlow = new THREE.Mesh(
+            new THREE.CircleGeometry(0.6, 32),
+            new THREE.MeshPhysicalMaterial({
+                color: carColor.headlightGlow,
+                emissive: carColor.headlightGlow,
+                emissiveIntensity: 4,
+                transparent: true,
+                opacity: 0.4
+            })
+        );
+        outerGlow.position.set(x, bodyHeight * 0.4, bodyLength * 0.5 - 0.01);
+        carGroup.add(outerGlow);
+
+        // Headlight housing (chrome ring)
+        const headlightHousing = new THREE.Mesh(
+            new THREE.RingGeometry(0.18, 0.22, 16),
+            new THREE.MeshPhysicalMaterial({
+                color: 0xcccccc,
+                metalness: 1,
+                roughness: 0.1,
+                clearcoat: 1
+            })
+        );
+        headlightHousing.position.set(x, bodyHeight * 0.4, bodyLength * 0.5 + 0.02);
+        carGroup.add(headlightHousing);
+    });
+
+    // Enhanced taillights with multiple components
+    const taillightGeometry = new THREE.CircleGeometry(0.2, 16);
+    const taillightMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 5,
+        metalness: 0.5,
+        roughness: 0.2,
+        clearcoat: 1
+    });
+
+    const taillightGlowMaterial = new THREE.MeshPhysicalMaterial({
+        color: carColor.taillightGlow,
+        emissive: carColor.taillightGlow,
+        emissiveIntensity: 8,
+        transparent: true,
+        opacity: 0.9
+    });
+
+    [-0.6, 0.6].forEach(x => {
+        // Main taillight
+        const taillight = new THREE.Mesh(taillightGeometry, taillightMaterial);
+        taillight.position.set(x, bodyHeight * 0.4, -bodyLength * 0.5 - 0.01);
+        carGroup.add(taillight);
+
+        // Add actual light source for taillights
+        const taillightSource = new THREE.PointLight(0xff0000, 1.5, 30);
+        taillightSource.position.set(x, bodyHeight * 0.4, -bodyLength * 0.5 - 0.5);
+        carGroup.add(taillightSource);
+
+        // Taillight glow
+        const taillightGlow = new THREE.Mesh(
+            new THREE.CircleGeometry(0.4, 32),
+            taillightGlowMaterial
+        );
+        taillightGlow.position.set(x, bodyHeight * 0.4, -bodyLength * 0.5);
+        carGroup.add(taillightGlow);
+
+        // Additional outer glow for taillights
+        const outerGlow = new THREE.Mesh(
+            new THREE.CircleGeometry(0.6, 32),
+            new THREE.MeshPhysicalMaterial({
+                color: carColor.taillightGlow,
+                emissive: carColor.taillightGlow,
+                emissiveIntensity: 4,
+                transparent: true,
+                opacity: 0.4
+            })
+        );
+        outerGlow.position.set(x, bodyHeight * 0.4, -bodyLength * 0.5 + 0.01);
+        carGroup.add(outerGlow);
+
+        // Add brake light strip
+        const brakeLight = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.4, 0.1),
+            new THREE.MeshPhysicalMaterial({
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 1,
+                metalness: 0.5,
+                roughness: 0.2
+            })
+        );
+        brakeLight.position.set(x, bodyHeight * 0.6, -bodyLength * 0.5 - 0.01);
+        carGroup.add(brakeLight);
+    });
+
+    // Grill
+    const grillGeometry = new THREE.PlaneGeometry(bodyWidth * 0.7, bodyHeight * 0.3);
+    const grillMaterial = new THREE.MeshPhongMaterial({
+        color: carColor.trim,
+        specular: 0x555555,
+        shininess: 100
+    });
+    const grill = new THREE.Mesh(grillGeometry, grillMaterial);
+    grill.position.set(0, bodyHeight * 0.3, bodyLength * 0.5 + 0.01);
+    carGroup.add(grill);
+
+    // Add bumpers
+    const bumperGeometry = new THREE.BoxGeometry(bodyWidth * 1.1, bodyHeight * 0.2, 0.3);
+    const bumperMaterial = new THREE.MeshPhongMaterial({
+        color: carColor.trim,
+        specular: 0x555555,
+        shininess: 100
+    });
+
+    // Front bumper
+    const frontBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
+    frontBumper.position.set(0, bodyHeight * 0.2, bodyLength * 0.5);
+    carGroup.add(frontBumper);
+
+    // Rear bumper
+    const rearBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
+    rearBumper.position.set(0, bodyHeight * 0.2, -bodyLength * 0.5);
+    carGroup.add(rearBumper);
+
+    // Add shadows
+    carGroup.traverse(object => {
+        if (object instanceof THREE.Mesh) {
+            object.castShadow = true;
+            object.receiveShadow = true;
+        }
+    });
+
     return carGroup;
 }
 
