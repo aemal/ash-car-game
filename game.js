@@ -6,7 +6,7 @@ let previewScenes = [];
 let previewCameras = [];
 let previewRenderers = [];
 let carModels = {};
-let buildings = []; // Store building references
+let buildings = []; // Store building refences
 let isGameOver = false;
 let fireParticles = null;
 let countdownMesh = null;
@@ -112,15 +112,23 @@ function createEnvironment() {
 
 // Create street network
 function createStreets() {
+    // Street materials
     const streetMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x444444,
+        color: 0x333333,  // Darker asphalt color
         roughness: 0.9,
         metalness: 0.1
     });
 
-    // Main road
+    const sidewalkMaterial = new THREE.MeshStandardMaterial({
+        color: 0x999999,  // Light gray for sidewalks
+        roughness: 0.8,
+        metalness: 0.1
+    });
+
+    // Main roads - wider with multiple lanes
+    const mainRoadWidth = 30;  // Total width including sidewalks
     const mainRoad = new THREE.Mesh(
-        new THREE.PlaneGeometry(20, 1000),
+        new THREE.PlaneGeometry(mainRoadWidth, 1000),
         streetMaterial
     );
     mainRoad.rotation.x = -Math.PI / 2;
@@ -128,40 +136,87 @@ function createStreets() {
     mainRoad.receiveShadow = true;
     scene.add(mainRoad);
 
-    // Cross streets
+    // Sidewalks along main road
+    const sidewalkWidth = 5;
+    const leftSidewalk = new THREE.Mesh(
+        new THREE.PlaneGeometry(sidewalkWidth, 1000),
+        sidewalkMaterial
+    );
+    leftSidewalk.rotation.x = -Math.PI / 2;
+    leftSidewalk.position.set(-mainRoadWidth/2 - sidewalkWidth/2, 0.1, 0);
+    leftSidewalk.receiveShadow = true;
+    scene.add(leftSidewalk);
+
+    const rightSidewalk = leftSidewalk.clone();
+    rightSidewalk.position.x = mainRoadWidth/2 + sidewalkWidth/2;
+    scene.add(rightSidewalk);
+
+    // Cross streets with sidewalks
     for (let i = -400; i <= 400; i += 200) {
+        // Street
         const crossStreet = new THREE.Mesh(
-            new THREE.PlaneGeometry(1000, 20),
+            new THREE.PlaneGeometry(1000, mainRoadWidth),
             streetMaterial
         );
         crossStreet.rotation.x = -Math.PI / 2;
         crossStreet.position.set(0, 0, i);
         crossStreet.receiveShadow = true;
         scene.add(crossStreet);
+
+        // Sidewalks for cross streets
+        const crossSidewalkLeft = new THREE.Mesh(
+            new THREE.PlaneGeometry(1000, sidewalkWidth),
+            sidewalkMaterial
+        );
+        crossSidewalkLeft.rotation.x = -Math.PI / 2;
+        crossSidewalkLeft.position.set(0, 0.1, i - mainRoadWidth/2 - sidewalkWidth/2);
+        crossSidewalkLeft.receiveShadow = true;
+        scene.add(crossSidewalkLeft);
+
+        const crossSidewalkRight = crossSidewalkLeft.clone();
+        crossSidewalkRight.position.z = i + mainRoadWidth/2 + sidewalkWidth/2;
+        scene.add(crossSidewalkRight);
     }
 
-    // Add street lines
-    createStreetLines();
+    createStreetLines(mainRoadWidth);
 }
 
 // Create street lines
-function createStreetLines() {
+function createStreetLines(roadWidth) {
     const lineMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xffffff,
         emissive: 0xffffff,
         emissiveIntensity: 0.5
     });
 
-    // Center lines
+    // Center lines on main road (double yellow lines)
     for (let i = -500; i < 500; i += 4) {
-        const line = new THREE.Mesh(
+        // Left yellow line
+        const leftLine = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.3, 2),
+            new THREE.MeshStandardMaterial({ color: 0xffff00 })
+        );
+        leftLine.rotation.x = -Math.PI / 2;
+        leftLine.position.set(-0.8, 0.1, i);
+        scene.add(leftLine);
+
+        // Right yellow line
+        const rightLine = leftLine.clone();
+        rightLine.position.x = 0.8;
+        scene.add(rightLine);
+
+        // White lane dividers
+        const leftLaneLine = new THREE.Mesh(
             new THREE.PlaneGeometry(0.2, 2),
             lineMaterial
         );
-        line.rotation.x = -Math.PI / 2;
-        line.position.set(0, 0.1, i);
-        line.receiveShadow = true;
-        scene.add(line);
+        leftLaneLine.rotation.x = -Math.PI / 2;
+        leftLaneLine.position.set(-roadWidth/4, 0.1, i);
+        scene.add(leftLaneLine);
+
+        const rightLaneLine = leftLaneLine.clone();
+        rightLaneLine.position.x = roadWidth/4;
+        scene.add(rightLaneLine);
     }
 
     // Cross street lines
@@ -172,39 +227,121 @@ function createStreetLines() {
         );
         line.rotation.x = -Math.PI / 2;
         line.position.set(i, 0.1, 0);
-        line.receiveShadow = true;
         scene.add(line);
     }
 }
 
 // Create buildings
 function createBuildings() {
-    const buildingMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x888888,
-        roughness: 0.7,
-        metalness: 0.3
-    });
+    const buildingColors = [
+        0xcc8866,  // Brick red
+        0x99aa77,  // Olive
+        0x6677aa,  // Steel blue
+        0x888888,  // Gray
+        0xddbb99   // Tan
+    ];
 
-    // Create random buildings
-    for (let i = 0; i < 50; i++) {
-        const height = Math.random() * 20 + 10;
-        const width = Math.random() * 10 + 5;
-        const depth = Math.random() * 10 + 5;
-        const x = (Math.random() - 0.5) * 800;
-        const z = (Math.random() - 0.5) * 800;
-
-        const building = new THREE.Mesh(
-            new THREE.BoxGeometry(width, height, depth),
-            buildingMaterial
-        );
-        building.position.set(x, height / 2, z);
-        building.castShadow = true;
-        building.receiveShadow = true;
-        scene.add(building);
-        
-        // Store building with its bounding box
-        const boundingBox = new THREE.Box3().setFromObject(building);
-        buildings.push({ mesh: building, bounds: boundingBox });
+    // Define city blocks (areas where buildings can be placed)
+    const blockSize = 180;  // Size of each city block
+    const streetWidth = 40;  // Total width of street + sidewalks
+    
+    for (let x = -400; x <= 400; x += blockSize + streetWidth) {
+        for (let z = -400; z <= 400; z += blockSize + streetWidth) {
+            // Skip if this block intersects with main roads
+            if (Math.abs(x) < streetWidth/2 || Math.abs(z) < streetWidth/2) continue;
+            
+            // Create 3-5 buildings per block
+            const buildingsInBlock = Math.floor(Math.random() * 3) + 3;
+            
+            for (let b = 0; b < buildingsInBlock; b++) {
+                const height = Math.random() * 30 + 15;  // 15-45 units tall
+                const width = Math.random() * 20 + 15;   // 15-35 units wide
+                const depth = Math.random() * 20 + 15;   // 15-35 units deep
+                
+                // Position within block, keeping margin from streets
+                const margin = 5;
+                const xPos = x + Math.random() * (blockSize - width - margin * 2) + margin - blockSize/2;
+                const zPos = z + Math.random() * (blockSize - depth - margin * 2) + margin - blockSize/2;
+                
+                // Create building
+                const building = new THREE.Group();
+                
+                // Main building structure
+                const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+                const buildingMaterial = new THREE.MeshStandardMaterial({ 
+                    color: buildingColors[Math.floor(Math.random() * buildingColors.length)],
+                    roughness: 0.7,
+                    metalness: 0.2
+                });
+                
+                const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
+                buildingMesh.position.set(0, height/2, 0);
+                building.add(buildingMesh);
+                
+                // Add windows
+                const windowMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x88ccff,
+                    emissive: 0x88ccff,
+                    emissiveIntensity: 0.2
+                });
+                
+                // Create window rows
+                const windowSize = 1;
+                const windowSpacing = 3;
+                const windowRows = Math.floor(height / windowSpacing) - 2;
+                const windowCols = Math.floor(width / windowSpacing) - 1;
+                
+                for (let row = 1; row < windowRows; row++) {
+                    for (let col = 0; col < windowCols; col++) {
+                        const window = new THREE.Mesh(
+                            new THREE.PlaneGeometry(windowSize, windowSize),
+                            windowMaterial
+                        );
+                        window.position.set(
+                            -width/2 + col * windowSpacing + windowSpacing,
+                            row * windowSpacing,
+                            depth/2 + 0.1
+                        );
+                        building.add(window);
+                        
+                        // Add windows to other sides
+                        const windowBack = window.clone();
+                        windowBack.position.z = -depth/2 - 0.1;
+                        windowBack.rotation.y = Math.PI;
+                        building.add(windowBack);
+                        
+                        if (col === 0) {
+                            const windowLeft = window.clone();
+                            windowLeft.position.set(
+                                -width/2 - 0.1,
+                                row * windowSpacing,
+                                -depth/2 + col * windowSpacing + windowSpacing
+                            );
+                            windowLeft.rotation.y = -Math.PI/2;
+                            building.add(windowLeft);
+                            
+                            const windowRight = window.clone();
+                            windowRight.position.set(
+                                width/2 + 0.1,
+                                row * windowSpacing,
+                                -depth/2 + col * windowSpacing + windowSpacing
+                            );
+                            windowRight.rotation.y = Math.PI/2;
+                            building.add(windowRight);
+                        }
+                    }
+                }
+                
+                building.position.set(xPos, 0, zPos);
+                building.castShadow = true;
+                building.receiveShadow = true;
+                scene.add(building);
+                
+                // Store building with its bounding box
+                const boundingBox = new THREE.Box3().setFromObject(building);
+                buildings.push({ mesh: building, bounds: boundingBox });
+            }
+        }
     }
 }
 
