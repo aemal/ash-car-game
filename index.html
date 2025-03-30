@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Driving Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <div id="gameCanvas"></div>
+        <div class="hud">
+            <div class="speed">Speed: <span id="speedValue">0</span> km/h</div>
+            <div class="gear">Gear: <span id="gearValue">N</span></div>
+        </div>
+        <div class="controls">
+            <p>W/S - Accelerate/Brake</p>
+            <p>A/D - Turn Left/Right</p>
+            <p>Space - Handbrake</p>
+            <p>R - Reset Position</p>
+            <p>C - Toggle Camera View</p>
+        </div>
+    </div>
+
+    <div class="car-selection-menu">
+        <h1>Choose Your Car</h1>
+        <div class="car-options">
+            <div class="car-option" data-car="sports">
+                <h2>Sports Car</h2>
+                <div class="car-preview" id="sportsCarPreview"></div>
+                <p>Fast and agile</p>
+            </div>
+            <div class="car-option" data-car="muscle">
+                <h2>Muscle Car</h2>
+                <div class="car-preview" id="muscleCarPreview"></div>
+                <p>Powerful and tough</p>
+            </div>
+            <div class="car-option" data-car="classic">
+                <h2>Classic Car</h2>
+                <div class="car-preview" id="classicCarPreview"></div>
+                <p>Timeless style</p>
+            </div>
+        </div>
+        <div class="loading-message">Loading 3D models...</div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html> 
