@@ -141,11 +141,12 @@ let cameraMode = 'third';
 let maxSpeed = 50;
 let currentSpeedKmh = 0;
 let cameraAngle = 0;
-let turnAngle = 0; // Track the car's turn angle
-let accelerationRate = 0.5; // Base acceleration
+let turnAngle = 0;
+let accelerationRate = 0.5;
 let maxAcceleration = 0.5;
-let turnSpeed = 0.06; // Increased from 0.03 for more responsive turning
-let driftFactor = 0.92; // Reduced from 0.98 for easier turning
+let turnSpeed = 0.06;
+let driftFactor = 0.95; // Increased from 0.92 for smoother turning
+let returnToCenter = 0.98; // New variable to control how quickly the car straightens
 
 // Game state
 let keys = {};
@@ -1122,27 +1123,26 @@ function updateCarPhysics() {
     speed += acceleration;
     
     // Apply more realistic friction based on speed
-    const friction = Math.abs(speed) * 0.015; // Reduced friction for smoother movement
+    const friction = Math.abs(speed) * 0.015;
     speed *= (1 - friction);
 
     // Handle steering with improved speed-based sensitivity
     const speedFactor = Math.min(Math.abs(speed) / maxSpeed, 1);
-    const currentTurnSpeed = turnSpeed * (1 + speedFactor * 0.5); // Adjusted speed factor influence
+    const currentTurnSpeed = turnSpeed * (1 + speedFactor * 0.5);
 
     if (keys['ArrowLeft']) {
-        turnAngle += currentTurnSpeed * (1 - speedFactor * 0.3); // Reduced speed influence on turning
+        turnAngle += currentTurnSpeed * (1 - speedFactor * 0.3);
     } else if (keys['ArrowRight']) {
-        turnAngle -= currentTurnSpeed * (1 - speedFactor * 0.3); // Reduced speed influence on turning
-    } else {
-        // Return wheels to center more gradually
-        turnAngle *= 0.90; // Increased from 0.95 for faster straightening
+        turnAngle -= currentTurnSpeed * (1 - speedFactor * 0.3);
     }
 
-    // Limit turn angle with more generous limits
-    turnAngle = Math.max(Math.min(turnAngle, Math.PI / 2.5), -Math.PI / 2.5); // Increased from PI/3
+    // Limit turn angle
+    const maxTurnAngle = Math.PI / 2.5;
+    turnAngle = Math.max(Math.min(turnAngle, maxTurnAngle), -maxTurnAngle);
 
     // Update camera angle with smoother drift effect
-    cameraAngle = cameraAngle * driftFactor + turnAngle * (1 - driftFactor);
+    const turnInfluence = 1 - driftFactor;
+    cameraAngle = cameraAngle * driftFactor + turnAngle * turnInfluence;
 
     // Convert speed to km/h for display
     currentSpeedKmh = Math.abs(speed) * 60;
