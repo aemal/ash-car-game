@@ -1136,10 +1136,7 @@ function updateCarPhysics() {
         turnAngle -= currentTurnSpeed * (1 - speedFactor * 0.3);
     }
 
-    // Limit turn angle
-    const maxTurnAngle = Math.PI / 2.5;
-    turnAngle = Math.max(Math.min(turnAngle, maxTurnAngle), -maxTurnAngle);
-
+    // Remove turn angle limits to allow full rotation
     // Update camera angle with smoother drift effect
     const turnInfluence = 1 - driftFactor;
     cameraAngle = cameraAngle * driftFactor + turnAngle * turnInfluence;
