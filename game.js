@@ -198,6 +198,7 @@ function init() {
 
     // Initialize car selection
     initCarSelection();
+    initCarSettings();
 
     // Start animation loop
     animate();
@@ -1525,6 +1526,12 @@ async function startGame() {
         return;
     }
 
+    // Get current settings values
+    maxSpeed = parseInt(document.getElementById('maxSpeed').value);
+    accelerationRate = parseFloat(document.getElementById('acceleration').value);
+    turnSpeed = parseFloat(document.getElementById('turnSpeed').value);
+    driftFactor = parseFloat(document.getElementById('driftFactor').value);
+
     // Hide car selection menu
     document.querySelector('.car-selection-menu').style.display = 'none';
     document.querySelector('.game-container').style.display = 'block';
@@ -1589,6 +1596,32 @@ function returnToCarSelection() {
     
     // Restart preview animations
     animatePreviews();
+}
+
+// Add this function after init()
+function initCarSettings() {
+    // Get all range inputs
+    const maxSpeedInput = document.getElementById('maxSpeed');
+    const accelerationInput = document.getElementById('acceleration');
+    const turnSpeedInput = document.getElementById('turnSpeed');
+    const driftFactorInput = document.getElementById('driftFactor');
+
+    // Update display values when sliders change
+    maxSpeedInput.addEventListener('input', (e) => {
+        document.getElementById('maxSpeedValue').textContent = e.target.value;
+    });
+
+    accelerationInput.addEventListener('input', (e) => {
+        document.getElementById('accelerationValue').textContent = e.target.value;
+    });
+
+    turnSpeedInput.addEventListener('input', (e) => {
+        document.getElementById('turnSpeedValue').textContent = e.target.value;
+    });
+
+    driftFactorInput.addEventListener('input', (e) => {
+        document.getElementById('driftFactorValue').textContent = e.target.value;
+    });
 }
 
 // Start the game

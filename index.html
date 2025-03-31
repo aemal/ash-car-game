@@ -52,6 +52,29 @@
                 <p>Vintage charm</p>
             </div>
         </div>
+        <div class="car-settings">
+            <h2>Car Settings</h2>
+            <div class="setting-group">
+                <label for="maxSpeed">Maximum Speed (km/h):</label>
+                <input type="range" id="maxSpeed" min="30" max="200" value="50" step="10">
+                <span id="maxSpeedValue">50</span>
+            </div>
+            <div class="setting-group">
+                <label for="acceleration">Acceleration:</label>
+                <input type="range" id="acceleration" min="0.1" max="1.0" value="0.5" step="0.1">
+                <span id="accelerationValue">0.5</span>
+            </div>
+            <div class="setting-group">
+                <label for="turnSpeed">Turn Speed:</label>
+                <input type="range" id="turnSpeed" min="0.02" max="0.2" value="0.06" step="0.02">
+                <span id="turnSpeedValue">0.06</span>
+            </div>
+            <div class="setting-group">
+                <label for="driftFactor">Drift Factor:</label>
+                <input type="range" id="driftFactor" min="0.8" max="0.99" value="0.95" step="0.01">
+                <span id="driftFactorValue">0.95</span>
+            </div>
+        </div>
         <div class="loading-message">Loading 3D models...</div>
     </div>
 

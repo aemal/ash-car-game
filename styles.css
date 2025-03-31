@@ -166,4 +166,53 @@ body {
 
 .loading-message.visible {
     display: block;
+}
+
+.car-settings {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    color: white;
+}
+
+.car-settings h2 {
+    margin: 0 0 15px 0;
+    color: #fff;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.setting-group label {
+    min-width: 150px;
+    color: #fff;
+}
+
+.setting-group input[type="range"] {
+    flex: 1;
+    height: 5px;
+    -webkit-appearance: none;
+    background: #444;
+    border-radius: 5px;
+    outline: none;
+}
+
+.setting-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.setting-group span {
+    min-width: 40px;
+    text-align: right;
+    color: #fff;
 } 
