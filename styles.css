@@ -122,8 +122,13 @@ body {
 }
 
 .car-option.selected {
-    background: rgba(0, 255, 0, 0.2);
-    border: 2px solid #00ff00;
+    background: var(--car-color);
+    background: linear-gradient(135deg, var(--car-color) 0%, rgba(0, 0, 0, 0.2) 100%);
+    border: 2px solid var(--car-color);
+    box-shadow: 0 0 20px var(--car-color),
+                0 0 40px var(--car-color),
+                inset 0 0 20px rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
 }
 
 .car-option h2 {

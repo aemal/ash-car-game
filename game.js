@@ -572,8 +572,17 @@ function initCarSelection() {
     // Add click handlers for car selection
     document.querySelectorAll('.car-option').forEach(option => {
         option.addEventListener('click', () => {
-            document.querySelectorAll('.car-option').forEach(opt => opt.classList.remove('selected'));
+            // Remove selected class from all options
+            document.querySelectorAll('.car-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.style.setProperty('--car-color', 'transparent');
+            });
+            
+            // Add selected class to clicked option
             option.classList.add('selected');
+            const carColor = option.dataset.color;
+            option.style.setProperty('--car-color', carColor);
+            
             selectedCarType = option.dataset.car;
             console.log(`🚗 Selected car type: ${selectedCarType}`);
         });
@@ -1590,9 +1599,12 @@ function returnToCarSelection() {
     document.querySelector('.car-selection-menu').style.display = 'flex';
     document.querySelector('.game-container').style.display = 'none';
     
-    // Reset car selection
+    // Reset car selection and colors
     selectedCarType = null;
-    document.querySelectorAll('.car-option').forEach(opt => opt.classList.remove('selected'));
+    document.querySelectorAll('.car-option').forEach(opt => {
+        opt.classList.remove('selected');
+        opt.style.setProperty('--car-color', 'transparent');
+    });
     
     // Restart preview animations
     animatePreviews();
