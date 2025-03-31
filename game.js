@@ -113,18 +113,20 @@ let loadingManager = new THREE.LoadingManager(
     // onLoad
     () => {
         console.log('✅ All models loaded successfully!');
-        document.querySelector('.loading-message').classList.remove('visible');
+        document.querySelector('.loading-message').style.display = 'none';
     },
     // onProgress
     (url, itemsLoaded, itemsTotal) => {
         console.log(`🔄 Loading file: ${url}`);
         console.log(`Progress: ${itemsLoaded} / ${itemsTotal}`);
-        document.querySelector('.loading-message').textContent = 
-            `Loading 3D models... (${itemsLoaded}/${itemsTotal})`;
+        const loadingMessage = document.querySelector('.loading-message');
+        loadingMessage.style.display = 'block';
+        loadingMessage.textContent = `Loading 3D models... (${itemsLoaded}/${itemsTotal})`;
     },
     // onError
     (url) => {
         console.error('❌ Error loading:', url);
+        document.querySelector('.loading-message').style.display = 'none';
     }
 );
 
@@ -136,14 +138,14 @@ let gear = 'N';
 let rpm = 0;
 let handbrake = false;
 let cameraMode = 'third';
-let maxSpeed = 70;
+let maxSpeed = 50;
 let currentSpeedKmh = 0;
 let cameraAngle = 0;
 let turnAngle = 0; // Track the car's turn angle
 let accelerationRate = 0.5; // Base acceleration
 let maxAcceleration = 0.5;
-let turnSpeed = 0.03; // Base turn speed
-let driftFactor = 0.98; // How much the car maintains its previous direction
+let turnSpeed = 0.06; // Increased from 0.03 for more responsive turning
+let driftFactor = 0.92; // Reduced from 0.98 for easier turning
 
 // Game state
 let keys = {};
@@ -186,8 +188,9 @@ function init() {
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
 
-    // Show loading message
-    document.querySelector('.loading-message').classList.add('visible');
+    // Hide loading message initially
+    const loadingMessage = document.querySelector('.loading-message');
+    loadingMessage.style.display = 'none';
 
     // Initialize sound system
     soundManager.init();
@@ -1119,26 +1122,26 @@ function updateCarPhysics() {
     speed += acceleration;
     
     // Apply more realistic friction based on speed
-    const friction = Math.abs(speed) * 0.02;
+    const friction = Math.abs(speed) * 0.015; // Reduced friction for smoother movement
     speed *= (1 - friction);
 
-    // Handle steering with speed-based sensitivity
+    // Handle steering with improved speed-based sensitivity
     const speedFactor = Math.min(Math.abs(speed) / maxSpeed, 1);
-    const currentTurnSpeed = turnSpeed * (1 + speedFactor);
+    const currentTurnSpeed = turnSpeed * (1 + speedFactor * 0.5); // Adjusted speed factor influence
 
     if (keys['ArrowLeft']) {
-        turnAngle += currentTurnSpeed * (1 - speedFactor * 0.5);
+        turnAngle += currentTurnSpeed * (1 - speedFactor * 0.3); // Reduced speed influence on turning
     } else if (keys['ArrowRight']) {
-        turnAngle -= currentTurnSpeed * (1 - speedFactor * 0.5);
+        turnAngle -= currentTurnSpeed * (1 - speedFactor * 0.3); // Reduced speed influence on turning
     } else {
-        // Return wheels to center gradually
-        turnAngle *= 0.95;
+        // Return wheels to center more gradually
+        turnAngle *= 0.90; // Increased from 0.95 for faster straightening
     }
 
-    // Limit turn angle
-    turnAngle = Math.max(Math.min(turnAngle, Math.PI / 3), -Math.PI / 3);
+    // Limit turn angle with more generous limits
+    turnAngle = Math.max(Math.min(turnAngle, Math.PI / 2.5), -Math.PI / 2.5); // Increased from PI/3
 
-    // Update camera angle with drift effect
+    // Update camera angle with smoother drift effect
     cameraAngle = cameraAngle * driftFactor + turnAngle * (1 - driftFactor);
 
     // Convert speed to km/h for display
