@@ -289,105 +289,259 @@ function createStreets() {
         metalness: 0.1
     });
 
-    const mainRoadWidth = 8;
-    const mainRoad = new THREE.Mesh(
-        new THREE.PlaneGeometry(mainRoadWidth, WORLD_SIZE),
-        streetMaterial
-    );
-    mainRoad.rotation.x = -Math.PI / 2;
-    mainRoad.position.y = 0.01;
-    mainRoad.receiveShadow = true;
-    scene.add(mainRoad);
-
-    const sidewalkWidth = 1;
-    const leftSidewalk = new THREE.Mesh(
-        new THREE.PlaneGeometry(sidewalkWidth, WORLD_SIZE),
-        sidewalkMaterial
-    );
-    leftSidewalk.rotation.x = -Math.PI / 2;
-    leftSidewalk.position.set(-mainRoadWidth/2 - sidewalkWidth/2, 0.02, 0);
-    leftSidewalk.receiveShadow = true;
-    scene.add(leftSidewalk);
-
-    const rightSidewalk = leftSidewalk.clone();
-    rightSidewalk.position.x = mainRoadWidth/2 + sidewalkWidth/2;
-    scene.add(rightSidewalk);
-
-    // Cross streets with sidewalks
-    for (let i = -WORLD_SIZE/2; i <= WORLD_SIZE/2; i += 500) {
-        const crossStreet = new THREE.Mesh(
+    // Define street parameters
+    const mainRoadWidth = 12;  // Wider main roads
+    const sideRoadWidth = 8;   // Narrower side roads
+    const sidewalkWidth = 1.5; // Wider sidewalks
+    const blockSize = 200;     // Size of city blocks (area between streets)
+    
+    // Create a symmetric grid of streets
+    // First, create the main horizontal and vertical streets
+    for (let i = -WORLD_SIZE/2; i <= WORLD_SIZE/2; i += blockSize + mainRoadWidth + sidewalkWidth * 2) {
+        // Main horizontal street
+        const horizontalStreet = new THREE.Mesh(
             new THREE.PlaneGeometry(WORLD_SIZE, mainRoadWidth),
             streetMaterial
         );
-        crossStreet.rotation.x = -Math.PI / 2;
-        crossStreet.position.set(0, 0.01, i);
-        crossStreet.receiveShadow = true;
-        scene.add(crossStreet);
-
-        const crossSidewalkLeft = new THREE.Mesh(
+        horizontalStreet.rotation.x = -Math.PI / 2;
+        horizontalStreet.position.set(0, 0.01, i);
+        horizontalStreet.receiveShadow = true;
+        scene.add(horizontalStreet);
+        
+        // Sidewalks for horizontal street
+        const horizontalSidewalkTop = new THREE.Mesh(
             new THREE.PlaneGeometry(WORLD_SIZE, sidewalkWidth),
             sidewalkMaterial
         );
-        crossSidewalkLeft.rotation.x = -Math.PI / 2;
-        crossSidewalkLeft.position.set(0, 0.02, i - mainRoadWidth/2 - sidewalkWidth/2);
-        crossSidewalkLeft.receiveShadow = true;
-        scene.add(crossSidewalkLeft);
-
-        const crossSidewalkRight = crossSidewalkLeft.clone();
-        crossSidewalkRight.position.z = i + mainRoadWidth/2 + sidewalkWidth/2;
-        scene.add(crossSidewalkRight);
+        horizontalSidewalkTop.rotation.x = -Math.PI / 2;
+        horizontalSidewalkTop.position.set(0, 0.02, i - mainRoadWidth/2 - sidewalkWidth/2);
+        horizontalSidewalkTop.receiveShadow = true;
+        scene.add(horizontalSidewalkTop);
+        
+        const horizontalSidewalkBottom = horizontalSidewalkTop.clone();
+        horizontalSidewalkBottom.position.z = i + mainRoadWidth/2 + sidewalkWidth/2;
+        scene.add(horizontalSidewalkBottom);
+        
+        // Main vertical street
+        const verticalStreet = new THREE.Mesh(
+            new THREE.PlaneGeometry(mainRoadWidth, WORLD_SIZE),
+            streetMaterial
+        );
+        verticalStreet.rotation.x = -Math.PI / 2;
+        verticalStreet.position.set(i, 0.01, 0);
+        verticalStreet.receiveShadow = true;
+        scene.add(verticalStreet);
+        
+        // Sidewalks for vertical street
+        const verticalSidewalkLeft = new THREE.Mesh(
+            new THREE.PlaneGeometry(sidewalkWidth, WORLD_SIZE),
+            sidewalkMaterial
+        );
+        verticalSidewalkLeft.rotation.x = -Math.PI / 2;
+        verticalSidewalkLeft.position.set(i - mainRoadWidth/2 - sidewalkWidth/2, 0.02, 0);
+        verticalSidewalkLeft.receiveShadow = true;
+        scene.add(verticalSidewalkLeft);
+        
+        const verticalSidewalkRight = verticalSidewalkLeft.clone();
+        verticalSidewalkRight.position.x = i + mainRoadWidth/2 + sidewalkWidth/2;
+        scene.add(verticalSidewalkRight);
     }
-
-    createStreetLines(mainRoadWidth);
+    
+    // Create secondary streets (narrower) between main streets
+    for (let i = -WORLD_SIZE/2 + blockSize/2 + mainRoadWidth/2 + sidewalkWidth; 
+         i <= WORLD_SIZE/2 - blockSize/2 - mainRoadWidth/2 - sidewalkWidth; 
+         i += blockSize + mainRoadWidth + sidewalkWidth * 2) {
+        
+        // Secondary horizontal street
+        const secondaryHorizontalStreet = new THREE.Mesh(
+            new THREE.PlaneGeometry(WORLD_SIZE, sideRoadWidth),
+            streetMaterial
+        );
+        secondaryHorizontalStreet.rotation.x = -Math.PI / 2;
+        secondaryHorizontalStreet.position.set(0, 0.01, i);
+        secondaryHorizontalStreet.receiveShadow = true;
+        scene.add(secondaryHorizontalStreet);
+        
+        // Sidewalks for secondary horizontal street
+        const secondaryHorizontalSidewalkTop = new THREE.Mesh(
+            new THREE.PlaneGeometry(WORLD_SIZE, sidewalkWidth),
+            sidewalkMaterial
+        );
+        secondaryHorizontalSidewalkTop.rotation.x = -Math.PI / 2;
+        secondaryHorizontalSidewalkTop.position.set(0, 0.02, i - sideRoadWidth/2 - sidewalkWidth/2);
+        secondaryHorizontalSidewalkTop.receiveShadow = true;
+        scene.add(secondaryHorizontalSidewalkTop);
+        
+        const secondaryHorizontalSidewalkBottom = secondaryHorizontalSidewalkTop.clone();
+        secondaryHorizontalSidewalkBottom.position.z = i + sideRoadWidth/2 + sidewalkWidth/2;
+        scene.add(secondaryHorizontalSidewalkBottom);
+        
+        // Secondary vertical street
+        const secondaryVerticalStreet = new THREE.Mesh(
+            new THREE.PlaneGeometry(sideRoadWidth, WORLD_SIZE),
+            streetMaterial
+        );
+        secondaryVerticalStreet.rotation.x = -Math.PI / 2;
+        secondaryVerticalStreet.position.set(i, 0.01, 0);
+        secondaryVerticalStreet.receiveShadow = true;
+        scene.add(secondaryVerticalStreet);
+        
+        // Sidewalks for secondary vertical street
+        const secondaryVerticalSidewalkLeft = new THREE.Mesh(
+            new THREE.PlaneGeometry(sidewalkWidth, WORLD_SIZE),
+            sidewalkMaterial
+        );
+        secondaryVerticalSidewalkLeft.rotation.x = -Math.PI / 2;
+        secondaryVerticalSidewalkLeft.position.set(i - sideRoadWidth/2 - sidewalkWidth/2, 0.02, 0);
+        secondaryVerticalSidewalkLeft.receiveShadow = true;
+        scene.add(secondaryVerticalSidewalkLeft);
+        
+        const secondaryVerticalSidewalkRight = secondaryVerticalSidewalkLeft.clone();
+        secondaryVerticalSidewalkRight.position.x = i + sideRoadWidth/2 + sidewalkWidth/2;
+        scene.add(secondaryVerticalSidewalkRight);
+    }
+    
+    // Create street lines for all streets
+    createStreetLines(mainRoadWidth, sideRoadWidth, blockSize);
 }
 
-// Create street lines
-function createStreetLines(roadWidth) {
+// Enhanced street lines function
+function createStreetLines(mainRoadWidth, sideRoadWidth, blockSize) {
     const lineMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xffffff,
         emissive: 0xffffff,
         emissiveIntensity: 0.5
     });
 
-    // Center lines on main road (double yellow lines)
-    for (let i = -WORLD_SIZE/2; i < WORLD_SIZE/2; i += 4) {
-        // Left yellow line
-        const leftLine = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.3, 2),
-            new THREE.MeshStandardMaterial({ color: 0xffff00 })
-        );
-        leftLine.rotation.x = -Math.PI / 2;
-        leftLine.position.set(-0.8, 0.1, i);
-        scene.add(leftLine);
+    const yellowLineMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xffff00,
+        emissive: 0xffff00,
+        emissiveIntensity: 0.3
+    });
 
-        // Right yellow line
-        const rightLine = leftLine.clone();
-        rightLine.position.x = 0.8;
-        scene.add(rightLine);
+    // Create lines for main streets
+    for (let i = -WORLD_SIZE/2; i <= WORLD_SIZE/2; i += blockSize + mainRoadWidth + 3) {
+        // Horizontal main street lines
+        for (let x = -WORLD_SIZE/2; x < WORLD_SIZE/2; x += 4) {
+            // Center yellow lines
+            const leftYellowLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(2, 0.3),
+                yellowLineMaterial
+            );
+            leftYellowLine.rotation.x = -Math.PI / 2;
+            leftYellowLine.position.set(x, 0.1, i - 0.8);
+            scene.add(leftYellowLine);
 
-        // White lane dividers
-        const leftLaneLine = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.2, 2),
-            lineMaterial
-        );
-        leftLaneLine.rotation.x = -Math.PI / 2;
-        leftLaneLine.position.set(-roadWidth/4, 0.1, i);
-        scene.add(leftLaneLine);
+            const rightYellowLine = leftYellowLine.clone();
+            rightYellowLine.position.z = i + 0.8;
+            scene.add(rightYellowLine);
 
-        const rightLaneLine = leftLaneLine.clone();
-        rightLaneLine.position.x = roadWidth/4;
-        scene.add(rightLaneLine);
+            // White lane dividers
+            const leftLaneLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(2, 0.2),
+                lineMaterial
+            );
+            leftLaneLine.rotation.x = -Math.PI / 2;
+            leftLaneLine.position.set(x, 0.1, i - mainRoadWidth/4);
+            scene.add(leftLaneLine);
+
+            const rightLaneLine = leftLaneLine.clone();
+            rightLaneLine.position.z = i + mainRoadWidth/4;
+            scene.add(rightLaneLine);
+        }
+        
+        // Vertical main street lines
+        for (let z = -WORLD_SIZE/2; z < WORLD_SIZE/2; z += 4) {
+            // Center yellow lines
+            const leftYellowLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.3, 2),
+                yellowLineMaterial
+            );
+            leftYellowLine.rotation.x = -Math.PI / 2;
+            leftYellowLine.position.set(i - 0.8, 0.1, z);
+            scene.add(leftYellowLine);
+
+            const rightYellowLine = leftYellowLine.clone();
+            rightYellowLine.position.x = i + 0.8;
+            scene.add(rightYellowLine);
+
+            // White lane dividers
+            const leftLaneLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.2, 2),
+                lineMaterial
+            );
+            leftLaneLine.rotation.x = -Math.PI / 2;
+            leftLaneLine.position.set(i - mainRoadWidth/4, 0.1, z);
+            scene.add(leftLaneLine);
+
+            const rightLaneLine = leftLaneLine.clone();
+            rightLaneLine.position.x = i + mainRoadWidth/4;
+            scene.add(rightLaneLine);
+        }
     }
+    
+    // Create lines for secondary streets
+    for (let i = -WORLD_SIZE/2 + blockSize/2 + mainRoadWidth/2 + 3; 
+         i <= WORLD_SIZE/2 - blockSize/2 - mainRoadWidth/2 - 3; 
+         i += blockSize + mainRoadWidth + 3) {
+        
+        // Horizontal secondary street lines
+        for (let x = -WORLD_SIZE/2; x < WORLD_SIZE/2; x += 4) {
+            // Center yellow lines
+            const leftYellowLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(2, 0.3),
+                yellowLineMaterial
+            );
+            leftYellowLine.rotation.x = -Math.PI / 2;
+            leftYellowLine.position.set(x, 0.1, i - 0.6);
+            scene.add(leftYellowLine);
 
-    // Cross street lines
-    for (let i = -WORLD_SIZE/2; i < WORLD_SIZE/2; i += 4) {
-        const line = new THREE.Mesh(
-            new THREE.PlaneGeometry(2, 0.2),
-            lineMaterial
-        );
-        line.rotation.x = -Math.PI / 2;
-        line.position.set(i, 0.1, 0);
-        scene.add(line);
+            const rightYellowLine = leftYellowLine.clone();
+            rightYellowLine.position.z = i + 0.6;
+            scene.add(rightYellowLine);
+
+            // White lane dividers
+            const leftLaneLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(2, 0.2),
+                lineMaterial
+            );
+            leftLaneLine.rotation.x = -Math.PI / 2;
+            leftLaneLine.position.set(x, 0.1, i - sideRoadWidth/4);
+            scene.add(leftLaneLine);
+
+            const rightLaneLine = leftLaneLine.clone();
+            rightLaneLine.position.z = i + sideRoadWidth/4;
+            scene.add(rightLaneLine);
+        }
+        
+        // Vertical secondary street lines
+        for (let z = -WORLD_SIZE/2; z < WORLD_SIZE/2; z += 4) {
+            // Center yellow lines
+            const leftYellowLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.3, 2),
+                yellowLineMaterial
+            );
+            leftYellowLine.rotation.x = -Math.PI / 2;
+            leftYellowLine.position.set(i - 0.6, 0.1, z);
+            scene.add(leftYellowLine);
+
+            const rightYellowLine = leftYellowLine.clone();
+            rightYellowLine.position.x = i + 0.6;
+            scene.add(rightYellowLine);
+
+            // White lane dividers
+            const leftLaneLine = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.2, 2),
+                lineMaterial
+            );
+            leftLaneLine.rotation.x = -Math.PI / 2;
+            leftLaneLine.position.set(i - sideRoadWidth/4, 0.1, z);
+            scene.add(leftLaneLine);
+
+            const rightLaneLine = leftLaneLine.clone();
+            rightLaneLine.position.x = i + sideRoadWidth/4;
+            scene.add(rightLaneLine);
+        }
     }
 }
 
@@ -407,20 +561,26 @@ function createBuildings() {
     ];
 
     // Define city blocks (areas where buildings can be placed)
-    const blockSize = 150;  // Reduced block size for more density
-    const streetWidth = 40;  // Total width of street + sidewalks
-    const safeDistance = 25; // Reduced safe distance for more density
+    const mainRoadWidth = 12;  // Width of main roads
+    const sideRoadWidth = 8;   // Width of side roads
+    const sidewalkWidth = 1.5; // Width of sidewalks
+    const blockSize = 200;     // Size of city blocks (area between streets)
+    const safeDistance = 10;   // Safe distance from streets (increased from 5)
     
-    for (let x = -WORLD_SIZE/2; x <= WORLD_SIZE/2; x += blockSize + streetWidth) {
-        for (let z = -WORLD_SIZE/2; z <= WORLD_SIZE/2; z += blockSize + streetWidth) {
-            // Skip if this block is too close to main roads
-            if (Math.abs(x) < streetWidth * 2 || Math.abs(z) < streetWidth * 2) continue;
+    // Create buildings in each block
+    for (let x = -WORLD_SIZE/2 + mainRoadWidth/2 + sidewalkWidth + safeDistance; 
+         x <= WORLD_SIZE/2 - mainRoadWidth/2 - sidewalkWidth - safeDistance; 
+         x += blockSize + mainRoadWidth + sidewalkWidth * 2) {
+        
+        for (let z = -WORLD_SIZE/2 + mainRoadWidth/2 + sidewalkWidth + safeDistance; 
+             z <= WORLD_SIZE/2 - mainRoadWidth/2 - sidewalkWidth - safeDistance; 
+             z += blockSize + mainRoadWidth + sidewalkWidth * 2) {
             
-            // Create 4-7 buildings per block (increased from 3-5)
-            const buildingsInBlock = Math.floor(Math.random() * 4) + 4;
+            // Create buildings in this block
+            const buildingsInBlock = Math.floor(Math.random() * 4) + 3; // 3-6 buildings per block
             
             for (let b = 0; b < buildingsInBlock; b++) {
-                const height = Math.random() * 40 + 20;  // 20-60 units tall (increased height range)
+                const height = Math.random() * 40 + 20;  // 20-60 units tall
                 const width = Math.random() * 25 + 15;   // 15-40 units wide
                 const depth = Math.random() * 25 + 15;   // 15-40 units deep
                 
@@ -428,9 +588,6 @@ function createBuildings() {
                 const margin = safeDistance;
                 const xPos = x + Math.random() * (blockSize - width - margin * 2) + margin - blockSize/2;
                 const zPos = z + Math.random() * (blockSize - depth - margin * 2) + margin - blockSize/2;
-                
-                // Skip if too close to streets
-                if (Math.abs(xPos) < streetWidth * 2 || Math.abs(zPos) < streetWidth * 2) continue;
                 
                 // Create building
                 const building = new THREE.Group();
@@ -1399,8 +1556,11 @@ function createTrees() {
     }
 
     // Define safe zones for tree placement
-    const streetWidth = 40;  // Total width of street + sidewalks
-    const safeDistance = 25; // Minimum distance from streets
+    const mainRoadWidth = 12;  // Width of main roads
+    const sideRoadWidth = 8;   // Width of side roads
+    const sidewalkWidth = 1.5; // Width of sidewalks
+    const blockSize = 200;     // Size of city blocks (area between streets)
+    const safeDistance = 25;   // Minimum distance from streets
 
     // Add trees in clusters, away from streets
     const numClusters = 40;
@@ -1410,7 +1570,7 @@ function createTrees() {
         const clusterZ = -WORLD_SIZE/2 + Math.random() * WORLD_SIZE;
         
         // Skip if too close to streets
-        if (Math.abs(clusterX) < streetWidth * 2 || Math.abs(clusterZ) < streetWidth * 2) continue;
+        if (Math.abs(clusterX) < safeDistance || Math.abs(clusterZ) < safeDistance) continue;
         
         // Create cluster of trees
         const numTrees = 8 + Math.floor(Math.random() * 8);
@@ -1421,7 +1581,7 @@ function createTrees() {
             const treeZ = clusterZ + offsetZ;
             
             // Skip if individual tree is too close to streets
-            if (Math.abs(treeX) < streetWidth * 2 || Math.abs(treeZ) < streetWidth * 2) continue;
+            if (Math.abs(treeX) < safeDistance || Math.abs(treeZ) < safeDistance) continue;
             
             const scale = 0.8 + Math.random() * 0.6;
             scene.add(createTree(treeX, treeZ, scale));
@@ -1432,7 +1592,7 @@ function createTrees() {
     for (let x = -WORLD_SIZE/2; x <= WORLD_SIZE/2; x += 40) {
         for (let z = -WORLD_SIZE/2; z <= WORLD_SIZE/2; z += 40) {
             // Skip if too close to streets
-            if (Math.abs(x) < streetWidth * 2 || Math.abs(z) < streetWidth * 2) continue;
+            if (Math.abs(x) < safeDistance || Math.abs(z) < safeDistance) continue;
             
             // Random chance to place a tree
             if (Math.random() < 0.3) {
@@ -1442,7 +1602,7 @@ function createTrees() {
                 const treeZ = z + offsetZ;
                 
                 // Final safety check
-                if (Math.abs(treeX) < streetWidth * 2 || Math.abs(treeZ) < streetWidth * 2) continue;
+                if (Math.abs(treeX) < safeDistance || Math.abs(treeZ) < safeDistance) continue;
                 
                 const scale = 0.8 + Math.random() * 0.4;
                 scene.add(createTree(treeX, treeZ, scale));
