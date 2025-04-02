@@ -11,6 +11,7 @@ let trees = []; // Store tree references
 let isGameOver = false;
 let fireParticles = null;
 let countdownMesh = null;
+let sun; // Add sun variable
 
 // Sound variables
 let sounds = {
@@ -181,6 +182,9 @@ function init() {
     directionalLight.castShadow = true;
     scene.add(directionalLight);
 
+    // Create sun
+    createSun();
+
     // Create environment
     createEnvironment();
 
@@ -202,6 +206,75 @@ function init() {
 
     // Start animation loop
     animate();
+}
+
+// Add function to create sun
+function createSun() {
+    // Create sun group
+    sun = new THREE.Group();
+    
+    // Sun position (high in the sky)
+    sun.position.set(0, 100, -200);
+    
+    // Create sun core with more realistic color
+    const sunGeometry = new THREE.CircleGeometry(15, 32);
+    const sunMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffcc33,
+        transparent: true,
+        opacity: 0.95
+    });
+    const sunCore = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.add(sunCore);
+    
+    // Create inner glow with warmer color
+    const innerGlowGeometry = new THREE.CircleGeometry(18, 32);
+    const innerGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff9933,
+        transparent: true,
+        opacity: 0.4
+    });
+    const innerGlow = new THREE.Mesh(innerGlowGeometry, innerGlowMaterial);
+    sun.add(innerGlow);
+    
+    // Create middle glow
+    const middleGlowGeometry = new THREE.CircleGeometry(25, 32);
+    const middleGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff6600,
+        transparent: true,
+        opacity: 0.2
+    });
+    const middleGlow = new THREE.Mesh(middleGlowGeometry, middleGlowMaterial);
+    sun.add(middleGlow);
+    
+    // Create outer glow with cooler color
+    const outerGlowGeometry = new THREE.CircleGeometry(35, 32);
+    const outerGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff3300,
+        transparent: true,
+        opacity: 0.1
+    });
+    const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+    sun.add(outerGlow);
+    
+    // Add sun to scene
+    scene.add(sun);
+    
+    // Add sun light with improved color and intensity
+    const sunLight = new THREE.PointLight(0xffcc99, 1.5, 1000);
+    sunLight.position.set(0, 0, 0);
+    sun.add(sunLight);
+    
+    // Add a second light for better illumination
+    const secondaryLight = new THREE.DirectionalLight(0xffcc99, 0.5);
+    secondaryLight.position.set(0, 0, 0);
+    sun.add(secondaryLight);
+    
+    // Add subtle pulsing animation
+    sun.userData = {
+        pulseSpeed: 0.001 + Math.random() * 0.001,
+        pulseAmount: 0.05 + Math.random() * 0.05,
+        baseScale: 1.0
+    };
 }
 
 // Create the environment (streets, buildings, etc.)
@@ -1474,6 +1547,17 @@ function animate() {
         updateCamera();
         if (fireParticles) {
             updateFireEffect();
+        }
+        
+        // Enhanced sun animation
+        if (sun) {
+            // Rotate sun slowly
+            sun.rotation.z += 0.0005;
+            
+            // Add subtle pulsing effect
+            const pulse = Math.sin(Date.now() * sun.userData.pulseSpeed) * sun.userData.pulseAmount;
+            const scale = sun.userData.baseScale + pulse;
+            sun.scale.set(scale, scale, scale);
         }
     }
     
