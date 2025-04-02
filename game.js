@@ -398,28 +398,33 @@ function createBuildings() {
         0x99aa77,  // Olive
         0x6677aa,  // Steel blue
         0x888888,  // Gray
-        0xddbb99   // Tan
+        0xddbb99,  // Tan
+        0xaa7766,  // Dark brick
+        0x7799aa,  // Light blue
+        0x997755,  // Brown
+        0x668899,  // Slate
+        0xbb9977   // Sand
     ];
 
     // Define city blocks (areas where buildings can be placed)
-    const blockSize = 180;  // Size of each city block
+    const blockSize = 150;  // Reduced block size for more density
     const streetWidth = 40;  // Total width of street + sidewalks
-    const safeDistance = 30; // Minimum distance from streets
+    const safeDistance = 25; // Reduced safe distance for more density
     
     for (let x = -WORLD_SIZE/2; x <= WORLD_SIZE/2; x += blockSize + streetWidth) {
         for (let z = -WORLD_SIZE/2; z <= WORLD_SIZE/2; z += blockSize + streetWidth) {
             // Skip if this block is too close to main roads
             if (Math.abs(x) < streetWidth * 2 || Math.abs(z) < streetWidth * 2) continue;
             
-            // Create 3-5 buildings per block
-            const buildingsInBlock = Math.floor(Math.random() * 3) + 3;
+            // Create 4-7 buildings per block (increased from 3-5)
+            const buildingsInBlock = Math.floor(Math.random() * 4) + 4;
             
             for (let b = 0; b < buildingsInBlock; b++) {
-                const height = Math.random() * 30 + 15;  // 15-45 units tall
-                const width = Math.random() * 20 + 15;   // 15-35 units wide
-                const depth = Math.random() * 20 + 15;   // 15-35 units deep
+                const height = Math.random() * 40 + 20;  // 20-60 units tall (increased height range)
+                const width = Math.random() * 25 + 15;   // 15-40 units wide
+                const depth = Math.random() * 25 + 15;   // 15-40 units deep
                 
-                // Position within block, keeping larger margin from streets
+                // Position within block, keeping margin from streets
                 const margin = safeDistance;
                 const xPos = x + Math.random() * (blockSize - width - margin * 2) + margin - blockSize/2;
                 const zPos = z + Math.random() * (blockSize - depth - margin * 2) + margin - blockSize/2;
@@ -430,8 +435,18 @@ function createBuildings() {
                 // Create building
                 const building = new THREE.Group();
                 
-                // Main building structure
-                const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+                // Main building structure with random style
+                const buildingStyle = Math.random();
+                let buildingGeometry;
+                
+                if (buildingStyle < 0.3) { // 30% chance for modern style (taller, slimmer)
+                    buildingGeometry = new THREE.BoxGeometry(width * 0.8, height, depth * 0.8);
+                } else if (buildingStyle < 0.6) { // 30% chance for classic style (wider)
+                    buildingGeometry = new THREE.BoxGeometry(width * 1.1, height * 0.9, depth * 1.1);
+                } else { // 40% chance for standard style
+                    buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+                }
+                
                 const buildingMaterial = new THREE.MeshStandardMaterial({ 
                     color: buildingColors[Math.floor(Math.random() * buildingColors.length)],
                     roughness: 0.7,
@@ -442,57 +457,73 @@ function createBuildings() {
                 buildingMesh.position.set(0, height/2, 0);
                 building.add(buildingMesh);
                 
-                // Add windows
+                // Add windows with varying patterns
                 const windowMaterial = new THREE.MeshStandardMaterial({
                     color: 0x88ccff,
                     emissive: 0x88ccff,
                     emissiveIntensity: 0.2
                 });
                 
-                // Create window rows
+                // Create window rows with random patterns
                 const windowSize = 1;
                 const windowSpacing = 3;
                 const windowRows = Math.floor(height / windowSpacing) - 2;
                 const windowCols = Math.floor(width / windowSpacing) - 1;
                 
+                // Random window pattern (some windows might be dark)
                 for (let row = 1; row < windowRows; row++) {
                     for (let col = 0; col < windowCols; col++) {
-                        const window = new THREE.Mesh(
-                            new THREE.PlaneGeometry(windowSize, windowSize),
-                            windowMaterial
-                        );
-                        window.position.set(
-                            -width/2 + col * windowSpacing + windowSpacing,
-                            row * windowSpacing,
-                            depth/2 + 0.1
-                        );
-                        building.add(window);
-                        
-                        const windowBack = window.clone();
-                        windowBack.position.z = -depth/2 - 0.1;
-                        windowBack.rotation.y = Math.PI;
-                        building.add(windowBack);
-                        
-                        if (col === 0) {
-                            const windowLeft = window.clone();
-                            windowLeft.position.set(
-                                -width/2 - 0.1,
-                                row * windowSpacing,
-                                -depth/2 + col * windowSpacing + windowSpacing
+                        if (Math.random() < 0.8) { // 80% chance for window
+                            const window = new THREE.Mesh(
+                                new THREE.PlaneGeometry(windowSize, windowSize),
+                                windowMaterial
                             );
-                            windowLeft.rotation.y = -Math.PI/2;
-                            building.add(windowLeft);
+                            window.position.set(
+                                -width/2 + col * windowSpacing + windowSpacing,
+                                row * windowSpacing,
+                                depth/2 + 0.1
+                            );
+                            building.add(window);
                             
-                            const windowRight = window.clone();
-                            windowRight.position.set(
-                                width/2 + 0.1,
-                                row * windowSpacing,
-                                -depth/2 + col * windowSpacing + windowSpacing
-                            );
-                            windowRight.rotation.y = Math.PI/2;
-                            building.add(windowRight);
+                            const windowBack = window.clone();
+                            windowBack.position.z = -depth/2 - 0.1;
+                            windowBack.rotation.y = Math.PI;
+                            building.add(windowBack);
+                            
+                            if (col === 0) {
+                                const windowLeft = window.clone();
+                                windowLeft.position.set(
+                                    -width/2 - 0.1,
+                                    row * windowSpacing,
+                                    -depth/2 + col * windowSpacing + windowSpacing
+                                );
+                                windowLeft.rotation.y = -Math.PI/2;
+                                building.add(windowLeft);
+                                
+                                const windowRight = window.clone();
+                                windowRight.position.set(
+                                    width/2 + 0.1,
+                                    row * windowSpacing,
+                                    -depth/2 + col * windowSpacing + windowSpacing
+                                );
+                                windowRight.rotation.y = Math.PI/2;
+                                building.add(windowRight);
+                            }
                         }
                     }
+                }
+                
+                // Add random architectural details
+                if (Math.random() < 0.3) { // 30% chance for rooftop details
+                    const roofGeometry = new THREE.BoxGeometry(width * 1.2, height * 0.1, depth * 1.2);
+                    const roofMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x666666,
+                        roughness: 0.8,
+                        metalness: 0.2
+                    });
+                    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                    roof.position.y = height + height * 0.05;
+                    building.add(roof);
                 }
                 
                 building.position.set(xPos, 0, zPos);
