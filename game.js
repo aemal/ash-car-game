@@ -819,7 +819,37 @@ function initCarSelection() {
         const previewContainer = document.getElementById(`${type}CarPreview`);
         if (previewContainer) {
             previewContainer.innerHTML = ''; // Clear existing content
-            previewContainer.appendChild(previewRenderer.domElement);
+            
+            // Create a wrapper div for the preview and price
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.style.cssText = `
+                position: relative;
+                width: 300px;
+                height: 200px;
+            `;
+            
+            // Add the renderer canvas
+            wrapperDiv.appendChild(previewRenderer.domElement);
+            
+            // Add price label
+            const priceLabel = document.createElement('div');
+            priceLabel.textContent = '$25';
+            priceLabel.style.cssText = `
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                color: #00ff00;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-size: 20px;
+                font-weight: bold;
+                font-family: Arial, sans-serif;
+                z-index: 10;
+            `;
+            wrapperDiv.appendChild(priceLabel);
+            
+            previewContainer.appendChild(wrapperDiv);
         }
         
         // Add lighting to preview
