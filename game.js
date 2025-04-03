@@ -156,6 +156,14 @@ let isGameStarted = false;
 // Add world size constant at the top with other constants
 const WORLD_SIZE = 1000; // Size of the world in units
 
+// Add touch control variables at the top with other global variables
+let touchControls = {
+    left: false,
+    right: false,
+    up: false,
+    down: false
+};
+
 // Initialize the game
 function init() {
     // Create scene
@@ -203,6 +211,9 @@ function init() {
     // Initialize car selection
     initCarSelection();
     initCarSettings();
+
+    // Add touch controls
+    createTouchControls();
 
     // Start animation loop
     animate();
@@ -849,6 +860,65 @@ function initCarSelection() {
         });
     });
 
+    // Add start button to car selection menu with fixed positioning
+    const startButton = document.createElement('button');
+    startButton.id = 'start-game-button';
+    startButton.textContent = 'START GAME';
+    startButton.style.cssText = `
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 15px 30px;
+        font-size: 24px;
+        background: rgba(0, 255, 0, 0.7);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        z-index: 100;
+        transition: background 0.3s;
+    `;
+
+    // Create a container for the car settings that allows scrolling
+    const settingsContainer = document.createElement('div');
+    settingsContainer.style.cssText = `
+        position: relative;
+        width: 100%;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        padding-bottom: 80px;
+    `;
+
+    // Move existing content into the scrollable container
+    const carSelectionMenu = document.querySelector('.car-selection-menu');
+    const existingContent = Array.from(carSelectionMenu.children);
+    existingContent.forEach(child => settingsContainer.appendChild(child));
+    carSelectionMenu.appendChild(settingsContainer);
+
+    // Add the start button after the scrollable container
+    carSelectionMenu.appendChild(startButton);
+
+    // Update car selection menu styles
+    carSelectionMenu.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        height: 100vh;
+        overflow: hidden;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+
+    // Add click and touch event listeners for start button
+    startButton.addEventListener('click', () => {
+        if (selectedCarType) {
+            startGame();
+        } else {
+            alert('Please select a car first!');
+        }
+    });
+
     // Start preview animations
     animatePreviews();
 }
@@ -1375,11 +1445,11 @@ function updateCarPhysics() {
 
     const deltaTime = 1/60;
     
-    // Handle acceleration
-    if (keys['ArrowUp']) {
+    // Handle acceleration using touch controls or keyboard
+    if (keys['ArrowUp'] || touchControls.up) {
         acceleration = Math.min(acceleration + accelerationRate * deltaTime, maxAcceleration);
         gear = 'D';
-    } else if (keys['ArrowDown']) {
+    } else if (keys['ArrowDown'] || touchControls.down) {
         acceleration = Math.max(acceleration - accelerationRate * deltaTime, -maxAcceleration * 0.6);
         gear = 'R';
     } else {
@@ -1397,13 +1467,13 @@ function updateCarPhysics() {
     const friction = Math.abs(speed) * 0.015;
     speed *= (1 - friction);
 
-    // Handle steering with improved speed-based sensitivity
+    // Handle steering with touch controls or keyboard
     const speedFactor = Math.min(Math.abs(speed) / maxSpeed, 1);
     const currentTurnSpeed = turnSpeed * (1 + speedFactor * 0.5);
 
-    if (keys['ArrowLeft']) {
+    if (keys['ArrowLeft'] || touchControls.left) {
         turnAngle += currentTurnSpeed * (1 - speedFactor * 0.3);
-    } else if (keys['ArrowRight']) {
+    } else if (keys['ArrowRight'] || touchControls.right) {
         turnAngle -= currentTurnSpeed * (1 - speedFactor * 0.3);
     }
 
@@ -1837,6 +1907,9 @@ async function startGame() {
 
     // Start game loop
     animate();
+
+    // Dispatch game started event
+    document.dispatchEvent(new Event('gameStarted'));
 }
 
 // Add function to return to car selection
@@ -1883,6 +1956,9 @@ function returnToCarSelection() {
     
     // Restart preview animations
     animatePreviews();
+
+    // Dispatch return to menu event
+    document.dispatchEvent(new Event('returnToMenu'));
 }
 
 // Add this function after init()
@@ -1908,6 +1984,150 @@ function initCarSettings() {
 
     driftFactorInput.addEventListener('input', (e) => {
         document.getElementById('driftFactorValue').textContent = e.target.value;
+    });
+}
+
+// Add function to create touch controls
+function createTouchControls() {
+    // Only create touch controls if they don't already exist
+    if (document.getElementById('touch-controls')) {
+        return;
+    }
+
+    // Create touch control container
+    const touchContainer = document.createElement('div');
+    touchContainer.id = 'touch-controls';
+    touchContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+        display: none;
+    `;
+    document.body.appendChild(touchContainer);
+
+    // Create left control area
+    const leftControl = document.createElement('div');
+    leftControl.id = 'left-control';
+    leftControl.style.cssText = `
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 30%;
+        height: 100%;
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+    `;
+    touchContainer.appendChild(leftControl);
+
+    // Create right control area
+    const rightControl = document.createElement('div');
+    rightControl.id = 'right-control';
+    rightControl.style.cssText = `
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 30%;
+        height: 100%;
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+    `;
+    touchContainer.appendChild(rightControl);
+
+    // Create control buttons
+    const createButton = (id, label) => {
+        const button = document.createElement('div');
+        button.id = id;
+        button.textContent = label;
+        button.style.cssText = `
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.5);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            cursor: pointer;
+        `;
+        return button;
+    };
+
+    // Add buttons to left control
+    const upButton = createButton('up-button', '↑');
+    const downButton = createButton('down-button', '↓');
+    leftControl.appendChild(upButton);
+    leftControl.appendChild(downButton);
+
+    // Add buttons to right control
+    const leftButton = createButton('left-button', '←');
+    const rightButton = createButton('right-button', '→');
+    rightControl.appendChild(leftButton);
+    rightControl.appendChild(rightButton);
+
+    // Add event listeners for both touch and mouse events
+    const handleButtonEvents = (button, key) => {
+        // Touch events
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls[key] = true;
+            button.style.background = 'rgba(255, 255, 255, 0.3)';
+        });
+
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls[key] = false;
+            button.style.background = 'rgba(255, 255, 255, 0.2)';
+        });
+
+        // Mouse events
+        button.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            touchControls[key] = true;
+            button.style.background = 'rgba(255, 255, 255, 0.3)';
+        });
+
+        button.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            touchControls[key] = false;
+            button.style.background = 'rgba(255, 255, 255, 0.2)';
+        });
+
+        button.addEventListener('mouseleave', (e) => {
+            e.preventDefault();
+            touchControls[key] = false;
+            button.style.background = 'rgba(255, 255, 255, 0.2)';
+        });
+    };
+
+    handleButtonEvents(upButton, 'up');
+    handleButtonEvents(downButton, 'down');
+    handleButtonEvents(leftButton, 'left');
+    handleButtonEvents(rightButton, 'right');
+
+    // Show touch controls only when game starts
+    document.addEventListener('gameStarted', () => {
+        touchContainer.style.display = 'block';
+    });
+
+    // Hide touch controls when returning to menu
+    document.addEventListener('returnToMenu', () => {
+        touchContainer.style.display = 'none';
     });
 }
 
