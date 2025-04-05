@@ -831,15 +831,15 @@ function initCarSelection() {
             // Add the renderer canvas
             wrapperDiv.appendChild(previewRenderer.domElement);
             
-            // Add price label
+            // Add price label with different price for sports car
             const priceLabel = document.createElement('div');
-            priceLabel.textContent = '$25';
+            priceLabel.textContent = type === 'sports' ? 'FREE' : '$25';
             priceLabel.style.cssText = `
                 position: absolute;
                 top: 10px;
                 right: 10px;
                 background: rgba(0, 0, 0, 0.7);
-                color: #00ff00;
+                color: ${type === 'sports' ? '#00ff00' : '#00ff00'};
                 padding: 5px 10px;
                 border-radius: 5px;
                 font-size: 20px;
