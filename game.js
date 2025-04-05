@@ -1489,6 +1489,9 @@ function handleCollision() {
     isGameOver = true;
     createFireEffect(car.position);
     
+    // Deduct $1 for crashing
+    addMoney(-1.00);
+    
     // Play collision sound
     soundManager.playSound('collision', 0.5);
     
@@ -1719,7 +1722,8 @@ function updateCamera() {
 // Reset car position
 function resetCarPosition() {
     if (car) {
-        car.position.set(0, 0.5, 0);
+        const safePosition = findSafeStartPosition();
+        car.position.set(safePosition.x, 0.5, safePosition.z);
         car.rotation.y = 0;
         speed = 0;
         acceleration = 0;
@@ -1748,9 +1752,10 @@ function animate() {
         // Update camera
         updateCamera();
         
-        // Check for money earning
+        // Check for money earning - only if car is moving and speed is above 5 km/h
         const currentTime = Date.now();
-        if (currentTime - lastMoneyUpdate >= moneyUpdateInterval) {
+        if (currentTime - lastMoneyUpdate >= moneyUpdateInterval && 
+            Math.abs(currentSpeedKmh) > 5) {  // Only earn money when moving faster than 5 km/h
             addMoney(1.00); // Add $1.00 every 10 seconds
             lastMoneyUpdate = currentTime;
         }
@@ -2003,12 +2008,58 @@ function updateEnvironmentPosition(axis, offset) {
     }
 }
 
+// Find a safe starting position for the car
+function findSafeStartPosition() {
+    const safeDistance = 10; // Minimum distance from buildings
+    const maxAttempts = 50;  // Maximum number of attempts to find a safe spot
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // Generate random position within the world bounds
+        const x = -WORLD_SIZE/4 + Math.random() * (WORLD_SIZE/2); // Use central quarter of the world
+        const z = -WORLD_SIZE/4 + Math.random() * (WORLD_SIZE/2);
+        
+        // Create a temporary box to check collisions
+        const tempCar = new THREE.Box3();
+        const carSize = new THREE.Vector3(4, 2, 8); // Approximate car size
+        tempCar.setFromCenterAndSize(
+            new THREE.Vector3(x, 1, z),
+            carSize
+        );
+        
+        // Check for collisions with buildings
+        let isColliding = false;
+        for (const building of buildings) {
+            if (tempCar.intersectsBox(building.bounds)) {
+                isColliding = true;
+                break;
+            }
+        }
+        
+        // Check for collisions with trees
+        for (const tree of trees) {
+            if (tempCar.intersectsBox(tree.bounds)) {
+                isColliding = true;
+                break;
+            }
+        }
+        
+        // If no collision found, return this position
+        if (!isColliding) {
+            return { x, z };
+        }
+    }
+    
+    // If no safe position found after max attempts, return a default position
+    // in the middle of a main road
+    return { x: 0, z: 0 };
+}
+
 // Start game with selected car
 async function startGame() {
-    console.log('Starting game with car type:', selectedCarType);  // Add debug log
+    console.log('Starting game with car type:', selectedCarType);
     
     if (!selectedCarType) {
-        console.log('No car selected');  // Add debug log
+        console.log('No car selected');
         alert('Please select a car first!');
         return;
     }
@@ -2023,9 +2074,13 @@ async function startGame() {
     document.querySelector('.car-selection-menu').style.display = 'none';
     document.querySelector('.game-container').style.display = 'block';
 
-    // Clone the selected car model
+    // Find a safe starting position
+    const safePosition = findSafeStartPosition();
+    console.log('Starting at safe position:', safePosition);
+
+    // Clone the selected car model and place it at the safe position
     car = carModels[selectedCarType].clone();
-    car.position.set(0, 0.5, 0);
+    car.position.set(safePosition.x, 0.5, safePosition.z);
     scene.add(car);
 
     // Start engine sound
