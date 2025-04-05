@@ -13,6 +13,12 @@ let fireParticles = null;
 let countdownMesh = null;
 let sun; // Add sun variable
 
+// Money system variables
+let playerBalance = 0;
+let lastMoneyUpdate = 0;
+let moneyUpdateInterval = 30000; // 30 seconds in milliseconds
+let isGameStarted = false;
+
 // Sound variables
 let sounds = {
     engine: new Audio('sounds/engine.mp3'),
@@ -151,7 +157,6 @@ let returnToCenter = 0.98; // New variable to control how quickly the car straig
 
 // Game state
 let keys = {};
-let isGameStarted = false;
 
 // Add world size constant at the top with other constants
 const WORLD_SIZE = 1000; // Size of the world in units
@@ -803,6 +808,9 @@ function initCarSelection() {
     const carTypes = ['sports', 'muscle', 'classic', 'modern', 'luxury', 'retro'];
     let loadedModels = 0;
 
+    // Load saved balance
+    loadBalance();
+
     // Show car selection menu
     document.querySelector('.car-selection-menu').style.display = 'flex';
     document.querySelector('.game-container').style.display = 'none';
@@ -810,6 +818,7 @@ function initCarSelection() {
     // Create preview scenes for each car
     carTypes.forEach(type => {
         console.log(`🎨 Setting up preview scene for ${type} car`);
+        
         const previewScene = new THREE.Scene();
         previewScene.background = new THREE.Color(0x87CEEB);  // Sky blue background
         const previewCamera = new THREE.PerspectiveCamera(75, 300 / 200, 0.1, 1000);
@@ -842,16 +851,30 @@ function initCarSelection() {
                 color: ${type === 'sports' ? '#00ff00' : '#00ff00'};
                 padding: 5px 10px;
                 border-radius: 5px;
-                font-size: 20px;
                 font-weight: bold;
-                font-family: Arial, sans-serif;
-                z-index: 10;
             `;
             wrapperDiv.appendChild(priceLabel);
+
+            // Add message container for insufficient funds
+            const messageContainer = document.createElement('div');
+            messageContainer.style.cssText = `
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.7);
+                color: #ff3333;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-weight: bold;
+                display: none;
+            `;
+            messageContainer.textContent = 'Need more money!';
+            wrapperDiv.appendChild(messageContainer);
             
             previewContainer.appendChild(wrapperDiv);
         }
-        
+
         // Add lighting to preview
         const light = new THREE.DirectionalLight(0xffffff, 0.8);
         light.position.set(5, 5, 5);
@@ -873,20 +896,91 @@ function initCarSelection() {
 
     // Add click handlers for car selection
     document.querySelectorAll('.car-option').forEach(option => {
+        const carType = option.dataset.car;
+        const carColor = option.dataset.color;
+        
+        // Add hover effect
+        option.addEventListener('mouseenter', () => {
+            if (!option.classList.contains('selected')) {
+                option.style.setProperty('--car-color', carColor + '80'); // 50% opacity
+            }
+        });
+        
+        option.addEventListener('mouseleave', () => {
+            if (!option.classList.contains('selected')) {
+                option.style.setProperty('--car-color', 'transparent');
+            }
+        });
+
+        // Add visual effects elements
+        const effects = document.createElement('div');
+        effects.className = 'visual-effects';
+        
+        // Add corner sparkles
+        for (let i = 0; i < 4; i++) {
+            const corner = document.createElement('div');
+            corner.className = 'corner';
+            effects.appendChild(corner);
+        }
+        
+        // Add floating particles with random movement
+        for (let i = 0; i < 8; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            // Add random movement variables
+            particle.style.setProperty('--random-x', (Math.random() * 2 - 1).toFixed(2));
+            particle.style.setProperty('--random-y', Math.random().toFixed(2));
+            effects.appendChild(particle);
+        }
+
+        // Add energy field effect
+        const energyField = document.createElement('div');
+        energyField.className = 'energy-field';
+        effects.appendChild(energyField);
+        
+        option.appendChild(effects);
+
         option.addEventListener('click', () => {
-            // Remove selected class from all options
+            const messageContainer = option.querySelector('.car-preview div div:last-child');
+            
+            if (!canAffordCar(carType)) {
+                // Show message temporarily
+                messageContainer.style.display = 'block';
+                messageContainer.style.animation = 'shake 0.5s ease-in-out';
+                setTimeout(() => {
+                    messageContainer.style.display = 'none';
+                    messageContainer.style.animation = '';
+                }, 2000);
+                return;
+            }
+
+            // Add click effect
+            const clickEffect = document.createElement('div');
+            clickEffect.className = 'click-ripple';
+            option.appendChild(clickEffect);
+            setTimeout(() => clickEffect.remove(), 1000);
+
+            // Remove selected class and color from all options
             document.querySelectorAll('.car-option').forEach(opt => {
                 opt.classList.remove('selected');
                 opt.style.setProperty('--car-color', 'transparent');
             });
             
-            // Add selected class to clicked option
+            // Add selected class and color to clicked option
             option.classList.add('selected');
-            const carColor = option.dataset.color;
             option.style.setProperty('--car-color', carColor);
             
-            selectedCarType = option.dataset.car;
+            // Regenerate particles with new random values
+            option.querySelectorAll('.particle').forEach(particle => {
+                particle.style.setProperty('--random-x', (Math.random() * 2 - 1).toFixed(2));
+                particle.style.setProperty('--random-y', Math.random().toFixed(2));
+            });
+            
+            selectedCarType = carType;
             console.log(`🚗 Selected car type: ${selectedCarType}`);
+
+            // Purchase the car if needed
+            purchaseCar(carType);
         });
     });
 
@@ -940,12 +1034,17 @@ function initCarSelection() {
         box-sizing: border-box;
     `;
 
-    // Add click and touch event listeners for start button
+    // Add click handler for start button
     startButton.addEventListener('click', () => {
         if (selectedCarType) {
             startGame();
         } else {
-            alert('Please select a car first!');
+            const messageContainer = document.querySelector('.car-preview div div:last-child');
+            messageContainer.textContent = 'Please select a car first!';
+            messageContainer.style.display = 'block';
+            setTimeout(() => {
+                messageContainer.style.display = 'none';
+            }, 2000);
         }
     });
 
@@ -1642,29 +1741,30 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
     
-    if (isGameStarted) {
+    if (isGameStarted && !isGameOver) {
+        // Update car physics
         updateCarPhysics();
-        updateCamera();
-        if (fireParticles) {
-            updateFireEffect();
-        }
         
-        // Enhanced sun animation
-        if (sun) {
-            // Rotate sun slowly
-            sun.rotation.z += 0.0005;
-            
-            // Add subtle pulsing effect
-            const pulse = Math.sin(Date.now() * sun.userData.pulseSpeed) * sun.userData.pulseAmount;
-            const scale = sun.userData.baseScale + pulse;
-            sun.scale.set(scale, scale, scale);
+        // Update camera
+        updateCamera();
+        
+        // Check for money earning
+        const currentTime = Date.now();
+        if (currentTime - lastMoneyUpdate >= moneyUpdateInterval) {
+            addMoney(1.00); // Add $1.00 every 10 seconds
+            lastMoneyUpdate = currentTime;
         }
     }
     
-    // Render the scene
-    if (renderer && scene && camera) {
-        renderer.render(scene, camera);
-    }
+    // Render scene
+    renderer.render(scene, camera);
+    
+    // Update preview scenes if they exist
+    previewScenes.forEach((previewScene, index) => {
+        if (previewScene && previewCameras[index] && previewRenderers[index]) {
+            previewRenderers[index].render(previewScene, previewCameras[index]);
+        }
+    });
 }
 
 // Modify createTrees function to keep trees away from streets
@@ -1905,7 +2005,10 @@ function updateEnvironmentPosition(axis, offset) {
 
 // Start game with selected car
 async function startGame() {
+    console.log('Starting game with car type:', selectedCarType);  // Add debug log
+    
     if (!selectedCarType) {
+        console.log('No car selected');  // Add debug log
         alert('Please select a car first!');
         return;
     }
@@ -1934,6 +2037,7 @@ async function startGame() {
     }
 
     isGameStarted = true;
+    lastMoneyUpdate = Date.now();
 
     // Start game loop
     animate();
@@ -2160,6 +2264,164 @@ function createTouchControls() {
         touchContainer.style.display = 'none';
     });
 }
+
+// Money management functions
+function loadBalance() {
+    const savedBalance = localStorage.getItem('playerBalance');
+    if (savedBalance !== null) {
+        playerBalance = parseFloat(savedBalance);
+        updateBalanceDisplay();
+    }
+}
+
+function saveBalance() {
+    localStorage.setItem('playerBalance', playerBalance.toString());
+}
+
+function updateBalanceDisplay() {
+    const balanceElement = document.getElementById('balanceValue');
+    if (balanceElement) {
+        balanceElement.textContent = playerBalance.toFixed(2);
+    }
+}
+
+function addMoney(amount) {
+    playerBalance += amount;
+    updateBalanceDisplay();
+    saveBalance();
+}
+
+function canAffordCar(carType) {
+    if (carType === 'sports') return true; // Sports car is free
+    return playerBalance >= 25; // All other cars cost $25
+}
+
+function purchaseCar(carType) {
+    if (canAffordCar(carType)) {
+        if (carType !== 'sports') {
+            playerBalance -= 25;
+            updateBalanceDisplay();
+            saveBalance();
+        }
+        return true;
+    }
+    return false;
+}
+
+// Car selection initialization
+function initializeCarSelection() {
+    const carOptions = document.querySelectorAll('.car-option');
+    
+    carOptions.forEach(carOption => {
+        // Create visual effects container
+        const effectsContainer = document.createElement('div');
+        effectsContainer.className = 'effects-container';
+        
+        // Add energy field
+        const energyField = document.createElement('div');
+        energyField.className = 'energy-field';
+        effectsContainer.appendChild(energyField);
+        
+        // Add corner sparkles
+        for (let i = 0; i < 4; i++) {
+            const corner = document.createElement('div');
+            corner.className = 'corner';
+            effectsContainer.appendChild(corner);
+        }
+        
+        // Add floating particles
+        for (let i = 0; i < 8; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'floating-particle';
+            particle.style.setProperty('--delay', `${Math.random() * 2}s`);
+            particle.style.setProperty('--duration', `${2 + Math.random() * 2}s`);
+            effectsContainer.appendChild(particle);
+        }
+        
+        carOption.appendChild(effectsContainer);
+        
+        // Add hover effect
+        carOption.addEventListener('mouseenter', () => {
+            const carColor = window.getComputedStyle(carOption).getPropertyValue('--car-color');
+            carOption.style.backgroundColor = `${carColor}22`;
+        });
+        
+        carOption.addEventListener('mouseleave', () => {
+            carOption.style.backgroundColor = '';
+        });
+        
+        // Add click handler
+        carOption.addEventListener('click', (e) => {
+            const carType = carOption.getAttribute('data-car');  // Changed from data-car-type to data-car
+            const carPrice = carType === 'sports' ? 0 : 25;  // Sports car is free, others cost $25
+            
+            if (playerBalance < carPrice) {
+                // Show error message with shake animation
+                const message = carOption.querySelector('.car-preview div div:last-child');
+                message.textContent = `Need $${carPrice.toLocaleString()} to unlock!`;
+                message.classList.add('visible');
+                carOption.style.animation = 'shake 0.5s ease-in-out';
+                
+                setTimeout(() => {
+                    message.classList.remove('visible');
+                    carOption.style.animation = '';
+                }, 2000);
+                
+                return;
+            }
+            
+            // Create ripple effect
+            const ripple = document.createElement('div');
+            ripple.className = 'click-ripple';
+            carOption.appendChild(ripple);
+            
+            // Remove ripple after animation
+            ripple.addEventListener('animationend', () => ripple.remove());
+            
+            // Update selection state
+            carOptions.forEach(option => option.classList.remove('selected'));
+            carOption.classList.add('selected');
+            
+            // Regenerate particles with new random values
+            const particles = carOption.querySelectorAll('.floating-particle');
+            particles.forEach(particle => {
+                particle.style.setProperty('--delay', `${Math.random() * 2}s`);
+                particle.style.setProperty('--duration', `${2 + Math.random() * 2}s`);
+            });
+            
+            // Set selected car type and purchase
+            selectedCarType = carType;
+            console.log('Selected car type:', selectedCarType);  // Add debug log
+            purchaseCar(carType, carPrice);
+        });
+    });
+}
+
+// Add car purchase function
+function purchaseCar(carType, price) {
+    if (playerBalance >= price) {
+        playerBalance -= price;
+        updateBalanceDisplay();
+        console.log(`Purchased ${carType} for $${price}`);
+        // Additional purchase logic here...
+    }
+}
+
+// Update balance display
+function updateBalanceDisplay() {
+    const balanceElement = document.querySelector('.balance');
+    if (balanceElement) {
+        balanceElement.textContent = `$${playerBalance.toLocaleString()}`;
+    }
+}
+
+// ... existing code ...
+
+// Call initializeCarSelection after DOM content is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    initializeCarSelection();
+    // Initialize other game components...
+});
 
 // Start the game
 init(); 

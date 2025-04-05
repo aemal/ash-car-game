@@ -31,20 +31,25 @@ body {
 }
 
 .hud {
-    position: absolute;
+    position: fixed;
     top: 20px;
-    right: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px;
+    border-radius: 10px;
     color: white;
-    font-size: 24px;
+    font-family: Arial, sans-serif;
+    z-index: 1000;
+}
+
+.hud div {
+    margin: 5px 0;
+    font-size: 18px;
+}
+
+.hud .balance {
+    color: #00ff00;
     font-weight: bold;
-    z-index: 100;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 15px 25px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 
 .speed, .gear {
@@ -108,27 +113,159 @@ body {
 }
 
 .car-option {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    position: relative;
     padding: 15px;
-    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
     cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.car-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--car-color, transparent);
+    opacity: 0.1;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    border-radius: 10px;
+}
+
+/* Add glowing border effect */
+.car-option::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: var(--car-color, transparent);
+    border-radius: 12px;
+    z-index: -1;
+    opacity: 0;
     transition: all 0.3s ease;
 }
 
 .car-option:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.05);
+    transform: translateY(-2px);
 }
 
+.car-option:hover::before {
+    opacity: 0.2;
+    box-shadow: 0 0 30px var(--car-color);
+}
+
+/* Enhanced selected state with animations */
 .car-option.selected {
+    transform: translateY(-4px);
+}
+
+.car-option.selected::before {
+    opacity: 0.15;
+    animation: pulse 2s infinite;
+}
+
+.car-option.selected::after {
+    opacity: 1;
+    animation: borderGlow 2s infinite;
+}
+
+/* Add corner sparkles for selected state */
+.car-option.selected .corner {
+    position: absolute;
+    width: 10px;
+    height: 10px;
     background: var(--car-color);
-    background: linear-gradient(135deg, var(--car-color) 0%, rgba(0, 0, 0, 0.2) 100%);
-    border: 2px solid var(--car-color);
-    box-shadow: 0 0 20px var(--car-color),
-                0 0 40px var(--car-color),
-                inset 0 0 20px rgba(255, 255, 255, 0.3);
-    transform: scale(1.05);
+    opacity: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--car-color),
+                0 0 20px var(--car-color),
+                0 0 30px var(--car-color);
+}
+
+.car-option.selected .corner:nth-child(1) {
+    top: -5px;
+    left: -5px;
+    animation: sparkle 1.5s infinite 0.0s;
+}
+
+.car-option.selected .corner:nth-child(2) {
+    top: -5px;
+    right: -5px;
+    animation: sparkle 1.5s infinite 0.2s;
+}
+
+.car-option.selected .corner:nth-child(3) {
+    bottom: -5px;
+    left: -5px;
+    animation: sparkle 1.5s infinite 0.4s;
+}
+
+.car-option.selected .corner:nth-child(4) {
+    bottom: -5px;
+    right: -5px;
+    animation: sparkle 1.5s infinite 0.6s;
+}
+
+/* Add floating particles */
+.car-option.selected .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--car-color);
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.car-option.selected .particle:nth-child(5) { animation: float 3s infinite 0.0s; }
+.car-option.selected .particle:nth-child(6) { animation: float 3s infinite 0.5s; }
+.car-option.selected .particle:nth-child(7) { animation: float 3s infinite 1.0s; }
+.car-option.selected .particle:nth-child(8) { animation: float 3s infinite 1.5s; }
+
+/* Animations */
+@keyframes pulse {
+    0% { box-shadow: 0 0 20px var(--car-color); }
+    50% { box-shadow: 0 0 40px var(--car-color); }
+    100% { box-shadow: 0 0 20px var(--car-color); }
+}
+
+@keyframes borderGlow {
+    0% { filter: blur(2px); opacity: 0.5; }
+    50% { filter: blur(4px); opacity: 0.8; }
+    100% { filter: blur(2px); opacity: 0.5; }
+}
+
+@keyframes sparkle {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+@keyframes float {
+    0% { 
+        transform: translate(0, 0) scale(0);
+        opacity: 0;
+    }
+    50% { 
+        transform: translate(
+            calc(50px * (random(1) - 0.5)),
+            calc(-30px * random(1))
+        ) scale(1);
+        opacity: 0.8;
+    }
+    100% { 
+        transform: translate(
+            calc(100px * (random(1) - 0.5)),
+            calc(-60px * random(1))
+        ) scale(0);
+        opacity: 0;
+    }
 }
 
 .car-option h2 {
@@ -139,9 +276,10 @@ body {
 .car-preview {
     width: 300px;
     height: 200px;
-    margin: 10px auto;
+    background: rgba(135, 206, 235, 0.3);
     border-radius: 5px;
     overflow: hidden;
+    position: relative;
 }
 
 .car-preview canvas {
@@ -220,4 +358,93 @@ body {
     min-width: 40px;
     text-align: right;
     color: #fff;
+}
+
+/* Click ripple effect */
+.click-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 5px;
+    height: 5px;
+    background: var(--car-color);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: ripple 1s ease-out;
+    z-index: 2;
+}
+
+/* Energy field effect */
+.energy-field {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at center,
+        var(--car-color) 0%,
+        transparent 70%
+    );
+    opacity: 0;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.car-option.selected .energy-field {
+    animation: energyPulse 3s ease-in-out infinite;
+}
+
+/* Error shake animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes ripple {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(40);
+        opacity: 0;
+    }
+}
+
+@keyframes energyPulse {
+    0%, 100% { 
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% { 
+        opacity: 0.3;
+        transform: scale(1.1);
+    }
+}
+
+/* Enhanced message styling */
+.car-preview div div:last-child {
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.3),
+        0 0 10px var(--car-color);
+    transform-origin: center;
+    transition: all 0.3s ease;
+}
+
+.car-preview div div:last-child.visible {
+    animation: messageAppear 0.3s ease-out;
+}
+
+@keyframes messageAppear {
+    0% {
+        transform: translateY(20px) scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
 } 
